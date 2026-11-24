@@ -8,13 +8,13 @@ Airloom demo walkthrough for judges and reviewers.
 
 ## Five-minute walkthrough
 
-1. **Overview** (`/dashboard`) — Delhi AQI 236, very high, PM2.5 dominant. Today's call: "Take public transport for this trip". Lowest window 14:00-16:00, highest 06:00-08:00. Planned exposure proxy 165 µg/m³·h, 43% lower than current routine. Expand "Demo scenario / seeded values" to see provenance.
-2. **Today** (`/dashboard/today`) — Block by block plan: move the run to 14:00-16:00, take public transport at 08:30, keep midday errands short, keep afternoon indoors, ventilate briefly at 17:00, run purifier at night. Routine builder lets you edit commute time/distance, activity, activity time; changes rebuild the plan immediately.
-3. **Exposure** (`/dashboard/exposure`) — Hourly PM2.5 chart with WHO 15 guideline line; next-12-hours strip; commute comparison table (walk, cycle, transit, two-wheeler, car, remote) sorted by exposure proxy with recommended mode highlighted.
-4. **Indoor** (`/dashboard/indoor`) — Outdoor vs estimated occupied-room PM2.5; ventilation window or keep-closed advice; room estimates; indoor actions (purifier in occupied room, check filter).
-5. **Swaps** (`/dashboard/swaps`) — Impact simulator: current routine vs this plan exposure proxy; swaps (transit two days a week, walk short days, one errand loop, move activity to low window, filter one room) each with effort, frequency, horizon, basis, CO2 estimate.
-6. **Assistant** (`/dashboard/assistant`) — Ask "Should I go for a run this morning?" or "Should I open my windows?" Answers cite the data used and fall back to the rule engine when no model key is configured.
-7. **Settings** (`/dashboard/settings`) — Change location (search, use my location, or pick a demo city), toggle household/transport/ventilation, edit routine, reset profile.
+1. **Overview** (`/dashboard`): Delhi AQI 236, very high, PM2.5 dominant. Today's call: "Take public transport for this trip". Lowest window 14:00-16:00, highest 06:00-08:00. Planned exposure proxy 165 µg/m³·h, 43% lower than current routine. Expand "Demo scenario / seeded values" to see provenance.
+2. **Today** (`/dashboard/today`): Block by block plan: move the run to 14:00-16:00, take public transport at 08:30, keep midday errands short, keep afternoon indoors, ventilate briefly at 17:00, run purifier at night. Routine builder lets you edit commute time/distance, activity, activity time; changes rebuild the plan immediately.
+3. **Exposure** (`/dashboard/exposure`): Hourly PM2.5 chart with WHO 15 guideline line; next-12-hours strip; commute comparison table (walk, cycle, transit, two-wheeler, car, remote) sorted by exposure proxy with recommended mode highlighted.
+4. **Indoor** (`/dashboard/indoor`): Outdoor vs estimated occupied-room PM2.5; ventilation window or keep-closed advice; room estimates; indoor actions (purifier in occupied room, check filter).
+5. **Swaps** (`/dashboard/swaps`): Impact simulator: current routine vs this plan exposure proxy; swaps (transit two days a week, walk short days, one errand loop, move activity to low window, filter one room) each with effort, frequency, horizon, basis, CO2 estimate.
+6. **Assistant** (`/dashboard/assistant`): Ask "Should I go for a run this morning?" or "Should I open my windows?" Answers cite the data used and fall back to the rule engine when no model key is configured.
+7. **Settings** (`/dashboard/settings`): Change location (search, use my location, or pick a demo city), toggle household/transport/ventilation, edit routine, reset profile.
 
 ## Demo cities
 

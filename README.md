@@ -25,10 +25,10 @@ Every reading carries a provenance label: live, cached (stale fallback), or demo
 
 Airloom is decision support, not an index. On a polluted day a household makes many small calls: whether the run happens, which route to work, when to open windows, whether the purifier earns its power, what to change next month. A single AQI number answers none of them.
 
-1. **Read** — Hourly pollutants and weather from Open-Meteo.
-2. **Compute** — US EPA AQI breakpoints on PM2.5 and PM10, two-hour low and high windows, an exposure proxy (concentration × hours × mode factor), and an indoor infiltration estimate. Deterministic and testable.
-3. **Plan** — Six daily blocks (morning, commute, midday, afternoon, evening, night), each with an action, time window, reason, confidence, and stated basis.
-4. **Explain** — A grounded copilot answers questions against the same context, lists the data fields it used, and falls back to a built-in rule engine when Gemini is unavailable or fails.
+1. **Read**: Hourly pollutants and weather from Open-Meteo.
+2. **Compute**: US EPA AQI breakpoints on PM2.5 and PM10, two-hour low and high windows, an exposure proxy (concentration × hours × mode factor), and an indoor infiltration estimate. Deterministic and testable.
+3. **Plan**: Six daily blocks (morning, commute, midday, afternoon, evening, night), each with an action, time window, reason, confidence, and stated basis.
+4. **Explain**: A grounded copilot answers questions against the same context, lists the data fields it used, and falls back to a built-in rule engine when Gemini is unavailable or fails.
 
 ## Features
 
