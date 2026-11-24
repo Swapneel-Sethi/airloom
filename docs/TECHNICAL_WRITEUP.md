@@ -8,16 +8,16 @@ Next.js 16 App Router, React 19, TypeScript, Tailwind CSS 4, Zod, lucide-react. 
 
 ### Layering
 
-- `src/lib/types.ts` — shared domain types. One source of truth for every shape that crosses client/server boundaries.
-- `src/lib/aqi.ts` — US EPA AQI breakpoints on PM2.5 and PM10; other pollutants compared against WHO 2021 guideline values.
-- `src/lib/environment.ts` — Open-Meteo fetch, in-memory cache, stale fallback, geocoding, reverse geocode.
-- `src/lib/windows.ts` — two-hour window statistics, best/worst window selection.
-- `src/lib/plan.ts` — deterministic personalized six-block daily plan engine (core differentiator).
-- `src/lib/indoor.ts`, `commute.ts`, `exposure.ts`, `swaps.ts` — domain engines.
-- `src/lib/demo.ts` — seeded demo environments for five cities; never mixed with live data.
-- `src/lib/ai/` — isolated AI layer: `context.ts` (grounding context), `schema.ts` (Zod), `gemini.ts` (provider), `fallback.ts` (deterministic rules), `copilot.ts` (orchestrator with fallback).
-- `src/components/` — UI primitives, charts, dashboard shell, location dialog, shared blocks.
-- `src/app/` — App Router pages, API routes, metadata, robots, sitemap, opengraph image.
+- `src/lib/types.ts` - shared domain types. One source of truth for every shape that crosses client/server boundaries.
+- `src/lib/aqi.ts` - US EPA AQI breakpoints on PM2.5 and PM10; other pollutants compared against WHO 2021 guideline values.
+- `src/lib/environment.ts` - Open-Meteo fetch, in-memory cache, stale fallback, geocoding, reverse geocode.
+- `src/lib/windows.ts` - two-hour window statistics, best/worst window selection.
+- `src/lib/plan.ts` - deterministic personalized six-block daily plan engine (core differentiator).
+- `src/lib/indoor.ts`, `commute.ts`, `exposure.ts`, `swaps.ts` - domain engines.
+- `src/lib/demo.ts` - seeded demo environments for five cities; never mixed with live data.
+- `src/lib/ai/` - isolated AI layer: `context.ts` (grounding context), `schema.ts` (Zod), `gemini.ts` (provider), `fallback.ts` (deterministic rules), `copilot.ts` (orchestrator with fallback).
+- `src/components/` - UI primitives, charts, dashboard shell, location dialog, shared blocks.
+- `src/app/` - App Router pages, API routes, metadata, robots, sitemap, opengraph image.
 
 ## Data flow
 

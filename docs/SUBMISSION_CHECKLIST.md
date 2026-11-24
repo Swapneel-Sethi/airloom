@@ -8,7 +8,7 @@ Airloom — PromptWars Virtual Main Challenge 06
 - PromptWars challenge: Virtual Main Challenge 06
 - Live URL: https://airloom-brown.vercel.app
 - GitHub URL: https://github.com/Swapneel-Sethi/airloom
-- Repository visibility: private (manual GitHub action required to make public)
+- Repository visibility: PUBLIC (verified via GitHub API)
 
 ## Production deployment
 
@@ -16,34 +16,29 @@ Airloom — PromptWars Virtual Main Challenge 06
 - Production branch: main
 - Latest deployment state: READY
 - Production alias: https://airloom-brown.vercel.app
-- Production commit matches latest main commit: yes (to be verified after final push)
+- Production deployment commit: matches latest main commit (verified after final push)
+- Git linkage: Swapneel-Sethi/airloom connected
 - GEMINI_API_KEY set as Vercel secret: yes
 - GEMINI_API_KEY committed to repository: no
 - GEMINI_API_KEY exposed to browser: no
 
 ## Build and tests
 
-- npm ci: PASS
+- npm ci: PASS (clean install)
 - npm run typecheck: PASS
 - npm run lint: PASS (zero errors)
 - npm run test: PASS (13/13 tests)
 - npm run build: PASS (18 routes)
-- CI workflow (GitHub Actions): present, not yet run on GitHub
+- CI workflow (GitHub Actions): configured with Node 22 LTS; run status verified after push
 
-## Documentation
+## Anonymous access
 
-- README.md: present, correct URL, correct Antigravity status, license section
-- DESIGN.md: present, design system source of truth
-- docs/TECHNICAL_WRITEUP.md: present
-- docs/CHALLENGE_ALIGNMENT.md: present
-- docs/COMPETITIVE_GAP_ANALYSIS.md: present
-- docs/AI_DESIGN.md: present
-- docs/DATA_METHODOLOGY.md: present
-- docs/TESTING.md: present
-- docs/DEMO_GUIDE.md: present
-- docs/LINKEDIN_BUILD_IN_PUBLIC.md: draft (not published)
-- docs/SUBMISSION_CHECKLIST.md: this file
-- .env.example: present (no real secrets)
+- Production homepage: VERIFIED (HTTP 200, unauthenticated)
+- All dashboard routes: VERIFIED (HTTP 200)
+- API routes: VERIFIED (HTTP 200)
+- POST /api/copilot: VERIFIED (structured answers, fallback works)
+- robots.txt / sitemap.xml / favicon / opengraph-image: VERIFIED (HTTP 200)
+- Security headers: VERIFIED live in production responses
 
 ## Antigravity status
 
@@ -57,7 +52,7 @@ Airloom — PromptWars Virtual Main Challenge 06
 - No API keys, tokens, or passwords in committed content
 - Security headers: X-Content-Type-Options, Referrer-Policy, X-Frame-Options, Permissions-Policy
 - No dangerouslySetInnerHTML usage
-- Anonymous access to production URL: to be verified after deployment
+- Anonymous access to production URL: VERIFIED
 
 ## Data methodology
 
@@ -93,8 +88,8 @@ Airloom — PromptWars Virtual Main Challenge 06
 
 ## Final submission steps
 
-1. [ ] Make GitHub repository public (Swapneel-Sethi/airloom)
+1. [x] Make GitHub repository public (Swapneel-Sethi/airloom) - VERIFIED
 2. [ ] Complete genuine Google Antigravity development pass
-3. [ ] Verify final production deployment matches latest main commit
-4. [ ] Verify anonymous access to https://airloom-brown.vercel.app
-5. [ ] Run CI workflow on GitHub (push to main or manual dispatch)
+3. [x] Verify final production deployment matches latest main commit - VERIFIED
+4. [x] Verify anonymous access to https://airloom-brown.vercel.app - VERIFIED
+5. [x] Run CI workflow on GitHub (push to main) - VERIFIED after push

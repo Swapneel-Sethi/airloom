@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import type { ReactNode } from "react";
 import { Inter } from "next/font/google";
 import { SITE } from "@/lib/constants";
 import "./globals.css";
@@ -11,6 +12,9 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
+  alternates: {
+    canonical: SITE.url,
+  },
   title: {
     default: SITE.title,
     template: "%s | Airloom",
@@ -51,9 +55,12 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${inter.variable} h-full antialiased`}>
+      <head>
+        <link rel="canonical" href={SITE.url} />
+      </head>
       <body className="flex min-h-full flex-col bg-canvas text-ink">{children}</body>
     </html>
   );

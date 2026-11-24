@@ -4,9 +4,9 @@ Airloom's data sources, calculations, and stated limits.
 
 ## Sources
 
-- Open-Meteo air quality API: `https://air-quality-api.open-meteo.com/v1/air-quality` — hourly PM2.5, PM10, NO2, SO2, O3, CO, AQI (CAMS model) for a coordinate.
-- Open-Meteo forecast API: `https://api.open-meteo.com/v1/forecast` — temperature, humidity, wind speed, precipitation probability, weather code.
-- Open-Meteo geocoding API: `https://geocoding-api.open-meteo.com/v1/search` — city search and reverse geocode.
+- Open-Meteo air quality API: `https://air-quality-api.open-meteo.com/v1/air-quality` - hourly PM2.5, PM10, NO2, SO2, O3, CO, AQI (CAMS model) for a coordinate.
+- Open-Meteo forecast API: `https://api.open-meteo.com/v1/forecast` - temperature, humidity, wind speed, precipitation probability, weather code.
+- Open-Meteo geocoding API: `https://geocoding-api.open-meteo.com/v1/search` - city search and reverse geocode.
 
 All endpoints are public; no API key required. Data is fetched server-side in API routes and never exposed to the browser as raw credentials.
 

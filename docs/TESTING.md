@@ -2,7 +2,7 @@
 
 ## Commands
 
-- `npm run lint` — eslint across the project.
+- `npm run lint` - eslint across the project.
 - `npm run typecheck` — `tsc --noEmit`.
 - `npm run test` — `tsx --test scripts/selfcheck.test.ts` (node:test).
 - `npm run build` — `next build` (production build, static pages + TypeScript check).

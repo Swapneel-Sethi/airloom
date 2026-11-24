@@ -1,6 +1,6 @@
 # Airloom
 
-Breathe smarter through polluted days. Airloom turns an hourly air quality forecast into a personal decision plan for households in polluted cities — not just another AQI dashboard.
+Breathe smarter through polluted days. Airloom turns an hourly air quality forecast into a personal decision plan for households in polluted cities, not just another AQI dashboard.
 
 **PromptWars Virtual Main Challenge 06 submission**
 
