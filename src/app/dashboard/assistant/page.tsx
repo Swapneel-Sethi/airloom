@@ -170,7 +170,7 @@ export default function AssistantPage() {
         </section>
       ) : null}
 
-      <section aria-label="Conversation" aria-live="polite" className="min-h-[280px] space-y-8">
+      <section aria-label="Conversation" aria-live="polite" className="min-h-[280px] space-y-8 pb-24 sm:pb-0">
         {messages.length === 0 ? (
           <div className="border-t border-line-dark pt-8">
             <p className="max-w-xl text-sm leading-relaxed text-muted-dark">

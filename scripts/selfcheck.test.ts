@@ -177,9 +177,50 @@ test("the rule engine answers without a model and handles safety language", () =
   assert.ok(activity.dataUsed.some((item) => item.includes("PM2.5")));
   assert.equal(activity.safetyNote, null);
 
+  const acuteAsthma = deterministicAnswer(
+    "My child has asthma and is coughing, should I take them outside?",
+    context,
+  );
+  assert.ok(acuteAsthma.recommendation.toLowerCase().includes("not a medical service"));
+  assert.ok(acuteAsthma.recommendation.toLowerCase().includes("stay indoors"));
+  const acuteJoined = [
+    acuteAsthma.recommendation,
+    acuteAsthma.alternative,
+    ...acuteAsthma.why,
+    ...acuteAsthma.whatToDo,
+  ].join(" ");
+  assert.ok(!acuteJoined.match(/\d{2}:\d{2}/), "acute response must not recommend an outdoor window");
+  assert.ok(!acuteJoined.includes("best window"), "acute response must not reference best window");
+
+  const chestPain = deterministicAnswer("I have chest pain, what should I do?", context);
+  assert.ok(chestPain.recommendation.toLowerCase().includes("not a medical service"));
+  assert.ok(chestPain.recommendation.toLowerCase().includes("stay indoors"));
+  const chestJoined = [
+    chestPain.recommendation,
+    chestPain.alternative,
+    ...chestPain.why,
+    ...chestPain.whatToDo,
+  ].join(" ");
+  assert.ok(!chestJoined.match(/\d{2}:\d{2}/), "acute response must not recommend an outdoor window");
+
+  const wheezing = deterministicAnswer("I am wheezing and have difficulty breathing", context);
+  assert.ok(wheezing.recommendation.toLowerCase().includes("not a medical service"));
+  assert.ok(wheezing.recommendation.toLowerCase().includes("stay indoors"));
+
+  const harmlessAsthma = deterministicAnswer("I have asthma, what is the AQI?", context);
+  assert.ok(!harmlessAsthma.recommendation.toLowerCase().includes("stay indoors"));
+
+  const normalRun = deterministicAnswer("Should I go for a run this morning?", context);
+  assert.ok(normalRun.recommendation.length > 0);
+  assert.ok(normalRun.why.length >= 2);
+  assert.ok(normalRun.dataUsed.some((item) => item.includes("PM2.5")));
+
+  const normalFamily = deterministicAnswer("What can my family do indoors tonight?", context);
+  assert.ok(normalFamily.recommendation.length > 0);
+  assert.ok(normalFamily.why.length >= 2);
+
   const symptom = deterministicAnswer("I have chest pain, can I go running?", context);
-  assert.ok(symptom.safetyNote);
-  assert.ok(symptom.safetyNote.toLowerCase().includes("not a medical service"));
+  assert.ok(symptom.recommendation.toLowerCase().includes("not a medical service"));
 
   const ventilation = deterministicAnswer("Should I open the windows?", context);
   assert.ok(ventilation.why.length >= 2);

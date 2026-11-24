@@ -27,6 +27,65 @@ function safetyNote(question: string): string | null {
   return "Airloom provides environmental guidance based on available data and is not a medical service. If you or someone in your household has symptoms or a medical condition, follow advice from a qualified professional.";
 }
 
+const ACUTE_STANDALONE_SYMPTOMS = [
+  "chest pain",
+  "difficulty breathing",
+  "shortness of breath",
+  "asthma attack",
+  "cannot breathe",
+  "can't breathe",
+];
+
+const ACUTE_SYMPTOM_WORDS = ["asthma", "wheez", "cough"];
+
+const ACUTE_CONTEXT_WORDS = [
+  "child",
+  "kid",
+  "baby",
+  "infant",
+  "toddler",
+  "severe",
+  "serious",
+  "worse",
+  "worsening",
+  "emergency",
+  "urgent",
+  "attack",
+];
+
+function isAcuteHealthScenario(question: string): boolean {
+  const normalized = question.toLowerCase();
+
+  if (ACUTE_STANDALONE_SYMPTOMS.some((symptom) => normalized.includes(symptom))) {
+    return true;
+  }
+
+  const hasSymptomWord = ACUTE_SYMPTOM_WORDS.some((word) => normalized.includes(word));
+  if (!hasSymptomWord) return false;
+
+  const hasContextWord = ACUTE_CONTEXT_WORDS.some((word) => normalized.includes(word));
+  return hasContextWord;
+}
+
+function acuteHealthAnswer(): CopilotAnswer {
+  return {
+    recommendation:
+      "Airloom is not a medical service. Stay indoors and reduce outdoor exposure while symptoms are active.",
+    why: [
+      "Airloom does not diagnose medical conditions or assess acute symptom severity.",
+      "Respiratory symptoms such as chest pain, difficulty breathing, or wheezing warrant professional medical evaluation.",
+    ],
+    whatToDo: [
+      "Follow your existing clinician prescribed plan where applicable.",
+      "Seek professional medical care for concerning or worsening symptoms.",
+      "Keep windows closed and reduce outdoor exposure until symptoms improve.",
+    ],
+    alternative: "Contact a qualified healthcare professional or emergency services if symptoms are severe or worsening.",
+    dataUsed: [],
+    safetyNote: null,
+  };
+}
+
 function pm25(context: CopilotContext): number | null {
   const item = context.pollutants.find((entry) => entry.label === "PM2.5");
   return item ? item.value : null;
@@ -245,6 +304,11 @@ export function deterministicAnswer(
   context: CopilotContext,
 ): CopilotAnswer {
   const normalized = question.toLowerCase();
+
+  if (isAcuteHealthScenario(question)) {
+    return acuteHealthAnswer();
+  }
+
   let answer: CopilotAnswer;
 
   if (/(run|jog|exercise|walk|cycl|gym|cricket|play)/.test(normalized)) {
