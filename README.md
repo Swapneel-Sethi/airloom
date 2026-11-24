@@ -7,7 +7,7 @@ Breathe smarter through polluted days. Airloom turns an hourly air quality forec
 ## Live
 
 - GitHub: https://github.com/Swapneel-Sethi/airloom
-- Vercel: https://airloom.vercel.app
+- Vercel: https://airloom-brown.vercel.app
 
 ## Stack
 
@@ -74,7 +74,7 @@ Vercel production deployment linked to the `airloom` GitHub repo. `GEMINI_API_KE
 
 ## Remaining submission step
 
-Document the Google Antigravity requirement as a remaining step if it applies to this challenge.
+Google Antigravity is a required PromptWars submission step. This repository intentionally does not claim Antigravity usage. A genuine Antigravity development pass will be completed before submission.
 
 ## License
 

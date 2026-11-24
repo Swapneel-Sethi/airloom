@@ -249,7 +249,7 @@ export const SITE = {
   title: "Airloom | Urban Air Quality Intelligence",
   description:
     "Personalized air quality guidance, lower exposure routines, indoor air strategies, and sustainable choices for polluted days.",
-  url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://airloom.vercel.app",
+  url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://airloom-brown.vercel.app",
   disclaimer:
     "Airloom provides environmental guidance based on available data and is not a medical service. For medical concerns, follow advice from a qualified professional.",
 };

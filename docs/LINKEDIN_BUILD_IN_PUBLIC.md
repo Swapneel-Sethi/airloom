@@ -33,7 +33,7 @@ Unit tests (node:test), typecheck, lint, production build, and rendered visual Q
 ## Links
 
 Repo: https://github.com/Swapneel-Sethi/airloom
-Live: https://airloom.vercel.app
+Live: https://airloom-brown.vercel.app
 
 ## Notes
 
