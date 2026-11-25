@@ -1,196 +1,117 @@
 # Airloom
 
-Breathe smarter through polluted days. Airloom turns an hourly air quality forecast into a personalized daily decision plan rather than presenting only an AQI dashboard. It is decision support for households in polluted cities, helping with practical choices such as whether to exercise outdoors, when to travel, which commute option has lower exposure, when to ventilate, how to manage indoor air, and which lower exposure swaps make sense.
+**Breathe smarter through polluted days.**
 
-## PromptWars
+Airloom turns an hourly air-quality forecast into a personal decision plan: when to move, when to stay in, how to commute, when to ventilate, and what to change first. Every recommendation states its reason and its data source.
 
-Airloom is a submission for PromptWars Virtual Main Challenge 06, theme Urban Air Quality Assistant.
+[Live app](https://airloom-brown.vercel.app) · [Method](https://airloom-brown.vercel.app/#method) · [Technical write-up](docs/TECHNICAL_WRITEUP.md)
 
-## Live
+![Airloom landing page](docs/screenshot.png)
 
-Production: https://airloom-brown.vercel.app
+## Problem
 
-Repository: https://github.com/Swapneel-Sethi/airloom
+Most air-quality products stop at a number. A single AQI value does not answer the decisions a household actually makes on a polluted day:
 
-## Why Airloom
+- Should the run happen now or later?
+- Which commute option has lower exposure?
+- When is it safe to open the windows?
+- Is the purifier worth running tonight?
+- Which changes matter next month?
 
-Most air quality tools stop at a number. Airloom starts with a decision. On a polluted day a household makes many small calls: whether the run happens, which route to work, when to open windows, whether the purifier earns its power, what to change next month. A single AQI number answers none of them. Airloom attaches the number to a concrete plan and states its limits.
+Airloom starts from those decisions, not from the dashboard.
 
-## What Airloom Does
+## Solution
 
-Airloom reads hourly pollution and weather data, computes exposure planning values, turns those calculations into six daily action blocks, and answers questions through a grounded AI copilot. Every reading carries a provenance label: live, cached, or demo. Seeded demo data is never presented as live data.
+Airloom reads hourly pollution and weather data, computes exposure planning values, and turns them into six daily action blocks: morning, commute, midday, afternoon, evening and night. Each block has an action, time window, reason, confidence and stated basis.
 
-Core features:
+Core surfaces:
 
-- Location onboarding with city search and browser based location selection
-- Seeded demo cities including Delhi, Mumbai, Bengaluru, Kolkata, and Lucknow
-- Delhi judge scenario
-- Personalized six block daily plan
-- AQI and PM2.5 views
-- Exposure planning
-- Commute comparison with time, exposure proxy, and estimated CO2 per mode
-- Indoor air guidance with infiltration estimates and ventilation windows
-- Sustainable swaps with stated basis
-- Grounded AI assistant with deterministic rule based fallback
-- Provenance labels on every reading
-- Error and empty states
-- Responsive navigation with mobile bottom tabs
-- Hand rolled SVG charts
-- Settings for household, transport, ventilation, commute, and activity
-
-## How It Works
-
-Read
-Airloom reads hourly pollution and weather information from Open-Meteo for the selected coordinate.
-
-Compute
-Airloom computes:
-
-- US EPA AQI values for PM2.5 and PM10
-- lower and higher pollution windows
-- exposure proxy values using PM2.5 times duration times transport mode factor
-- commute comparisons
-- indoor infiltration estimates
-- sustainable transport comparisons
-
-Plan
-Airloom turns those calculations into six daily action blocks: morning, commute, midday, afternoon, evening, and night. Each block has an action, time window, reason, confidence, and stated basis.
-
-Explain
-The AI copilot answers questions using the same context shown in the product. It references current product data, exposes the data fields it used, does not invent measurements, and has safety boundaries. It does not diagnose medical conditions.
-
-## Data and Methodology
-
-Data sources:
-
-- Open-Meteo air quality data for hourly PM2.5, PM10, NO2, SO2, O3, CO, and AQI
-- Open-Meteo weather forecasts for temperature, humidity, and wind
-- Open-Meteo geocoding for city search and reverse geocode
-
-Provenance states:
-
-- Live: Fresh provider data.
-- Cached: Previously retrieved data used as a stale fallback.
-- Demo: Seeded scenario data for reliable product walkthroughs.
+- Location onboarding with city search and browser geolocation
+- Seeded demo cities: Delhi, Mumbai, Bengaluru, Kolkata and Lucknow
+- AQI and PM2.5 views with hand-rolled SVG charts
+- Six-block daily plan
+- Commute comparison by time, exposure proxy and estimated CO2
+- Indoor infiltration estimate and ventilation windows
+- Lower-exposure swaps with stated impact
+- Grounded AI assistant with a deterministic rule-based fallback
+- Provenance labels on every reading: live, cached or demo
 
 Demo data is never presented as live data.
 
-AQI methodology:
-Airloom uses US EPA breakpoints for PM2.5 and PM10. The result is a planning estimate and is not an official CPCB AQI measurement.
+## Proof
 
-Exposure proxy:
-The exposure proxy uses PM2.5 times duration times transport mode factor. It is a planning proxy. It is not inhaled dose. It is not a medical risk estimate.
+- **13/13 self-checks pass** (`npm test`): AQI breakpoints, category boundaries, exposure math, deterministic plans, sensitive-household thresholds, commute ordering, indoor estimates, swap output and copilot schema rejection.
+- **Deterministic core.** Identical inputs produce identical plans and recommendations.
+- **Production is live.** The deployed app returns HTTP 200.
+- **Fail-safe assistant.** If Gemini is unavailable, returns invalid output, times out or is not configured, the deterministic rule engine answers instead.
+- **Safety boundary.** The assistant does not diagnose medical conditions, and symptomatic questions do not receive outdoor exposure recommendations.
 
-Indoor estimate:
-The indoor number is based on an infiltration model using the selected household setup. It is a planning estimate. It is not a sensor measurement.
+## How it works
 
-Forecast uncertainty increases further into the forecast period.
+```text
+Open-Meteo hourly data
+  → AQI + exposure calculations
+  → six-block plan
+  → optional Gemini explanation
+  → provenance-labelled UI
+```
 
-## AI Copilot
+Airloom computes US EPA AQI values for PM2.5 and PM10, lower- and higher-pollution windows, an exposure proxy (`PM2.5 × duration × transport factor`), commute comparisons, indoor infiltration estimates and sustainable-transport comparisons.
 
-Gemini 2.5 Flash is used through a server side copilot route. Responses are validated using Zod. The deterministic rule engine provides fallback behavior when Gemini is unavailable, a provider request fails, a request times out, model output does not pass validation, or Gemini is not configured. The AI uses the same context as the product.
-
-Safety boundaries:
-
-- Airloom is not a medical service
-- The assistant does not diagnose medical conditions
-- Acute respiratory symptom handling was hardened during the final audit so symptomatic questions do not receive outdoor exposure recommendations
+The AI copilot receives the same context shown in the product, is validated with Zod, and falls back to deterministic rules. It does not invent measurements.
 
 ## Technology
 
-- Next.js 16
-- React 19
-- TypeScript
+- Next.js 16, React 19, TypeScript
 - Tailwind CSS 4
 - Zod
-- lucide-react
-- Gemini 2.5 Flash
-- Open-Meteo
+- Open-Meteo air quality, weather and geocoding APIs
+- Gemini 2.5 Flash, server-side only
+- Hand-rolled SVG charts (no charting library)
 - Vercel
 
-Charts are hand rolled SVG with no external charting library.
+## Demo
 
-## Testing and Verification
+Live: **https://airloom-brown.vercel.app**
 
-Local checks:
+The seeded Delhi scenario is the fastest walkthrough. The **Method** section on the landing page explains the calculations and their limits.
 
-npm ci: PASS
-
-npm run typecheck: PASS
-
-npm run lint: PASS with 0 errors
-
-npm run test: PASS 13 of 13
-
-npm run build: PASS
-
-Production build: 18 routes
-
-GitHub Actions: PASS
-
-Vercel: Production READY
-
-Anonymous production access: VERIFIED
-
-Production routes: VERIFIED
-
-Canonical metadata: Exactly one canonical tag with the production URL
-
-Security headers: VERIFIED
-
-No committed secrets: VERIFIED
-
-No stale old production URL references: VERIFIED
-
-Antigravity audit:
-Google Antigravity was genuinely used for the final production audit. The audit covered user journeys, responsive behavior, console behavior, network behavior, API behavior, product logic, AI behavior, accessibility, performance, source code, and security sanity. It identified three genuine issues: mobile assistant composer overlap, acute respiratory safety behavior in the deterministic fallback, and browser geolocation blocked by Permissions Policy. All three were fixed and reverified. Antigravity did not author the original project; it was used for the final audit only.
-
-## Privacy and Security
-
-User profile information remains in browser local storage. No user profile database is required. The Gemini key remains server side. API credentials are not committed. No API key is exposed to the browser.
-
-Production security headers:
-
-- X-Content-Type-Options: nosniff
-- Referrer-Policy: strict-origin-when-cross-origin
-- X-Frame-Options: DENY
-- Permissions-Policy: geolocation=(self), microphone=(), camera=()
-
-Same origin geolocation is intentionally allowed because Airloom provides a Use my location feature.
-
-## Known Limitations
-
-Air quality is based on modelled data rather than a doorstep sensor. AQI is a planning estimate rather than an official CPCB measurement. Exposure values are planning proxies. Indoor values are model estimates. Forecast uncertainty increases further into the future. The application is decision support and not a medical service.
-
-## Run Locally
+## Run locally
 
 ```bash
 npm install
 npm run dev
 ```
 
-Development server: http://localhost:3000
-
-Additional commands:
+Open http://localhost:3000.
 
 ```bash
 npm run build
 npm run start
 npm run lint
 npm run typecheck
-npm run test
+npm test
 ```
 
-## Project Structure
+`GEMINI_API_KEY` is optional. Without it, the product runs on deterministic rules.
 
-```text
-src/app/                    Application routes and API routes
-src/components/             Shared UI and dashboard components
-src/lib/                    Core product logic and AI logic
-scripts/                    Tests
-docs/                       Technical and project documentation
-```
+## Limitations
 
-## License
+- Air quality is modelled data, not a doorstep sensor.
+- AQI is a planning estimate based on US EPA breakpoints, not an official CPCB measurement.
+- Exposure is a planning proxy, not inhaled dose or medical risk.
+- Indoor values come from an infiltration model, not a sensor reading.
+- Forecast uncertainty increases further into the forecast period.
+- Airloom is decision support, not a medical service.
 
-MIT
+## Data and security
+
+User profile settings stay in browser local storage. The Gemini key remains server-side. Production responses include `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `X-Frame-Options: DENY` and a scoped `Permissions-Policy`. See [`docs/DATA_METHODOLOGY.md`](docs/DATA_METHODOLOGY.md) and [`docs/TESTING.md`](docs/TESTING.md).
+
+## Context
+
+Built for PromptWars Virtual Main Challenge 06, theme **Urban Air Quality Assistant**.
+
+## Author
+
+Swapneel Sethi · [GitHub](https://github.com/Swapneel-Sethi)
