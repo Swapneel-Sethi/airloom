@@ -22,6 +22,18 @@ export function judgeProfile(): UserProfile {
   return { ...DEFAULT_PROFILE, onboarded: true };
 }
 
+export function freshOnboardingProfile(): UserProfile {
+  return {
+    ...DEFAULT_PROFILE,
+    location: null,
+    household: [],
+    transport: [],
+    ventilation: [],
+    dataMode: "auto",
+    onboarded: false,
+  };
+}
+
 const locationSchema = z.object({
   name: z.string().min(1),
   admin1: z.string().optional(),

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { startTransition, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, LoaderCircle, LocateFixed, MapPin, Search } from "lucide-react";
 import {
@@ -10,7 +10,7 @@ import {
   TRANSPORT_OPTIONS,
   VENTILATION_OPTIONS,
 } from "@/lib/constants";
-import { judgeProfile } from "@/lib/profile";
+import { freshOnboardingProfile, judgeProfile } from "@/lib/profile";
 import type { GeoLocation } from "@/lib/types";
 import { useProfile } from "@/components/providers";
 import { Field, inputClass, ToggleChip } from "@/components/dashboard/controls";
@@ -22,13 +22,20 @@ const STEPS = ["Location", "Household", "Indoor and routine"];
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { profile, updateProfile, replaceProfile } = useProfile();
+  const { profile, updateProfile, replaceProfile, hydrated } = useProfile();
   const [step, setStep] = useState(0);
+  const [ready, setReady] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<GeoLocation[]>([]);
   const [searching, setSearching] = useState(false);
   const [locating, setLocating] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!hydrated || ready) return;
+    replaceProfile(freshOnboardingProfile());
+    startTransition(() => setReady(true));
+  }, [hydrated, ready, replaceProfile]);
 
   useEffect(() => {
     const trimmed = query.trim();
@@ -108,6 +115,10 @@ export default function OnboardingPage() {
   }
 
   const canContinue = step > 0 || profile.location !== null;
+
+  if (!hydrated || !ready) {
+    return <div className="min-h-dvh bg-night" />;
+  }
 
   return (
     <div className="min-h-dvh bg-night text-ink-light">
