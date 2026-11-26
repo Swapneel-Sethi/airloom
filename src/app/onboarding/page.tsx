@@ -192,9 +192,11 @@ export default function OnboardingPage() {
                     <li key={`${result.latitude}-${result.longitude}`}>
                       <button
                         type="button"
-                        onClick={() =>
-                          updateProfile({ location: result, dataMode: "auto" })
-                        }
+                        onClick={() => {
+                          updateProfile({ location: result, dataMode: "auto" });
+                          setQuery("");
+                          setResults([]);
+                        }}
                         className="flex w-full items-center gap-2 rounded-lg px-2 py-3 text-left text-sm hover:bg-white/5"
                       >
                         <MapPin size={15} className="text-muted-dark" aria-hidden="true" />

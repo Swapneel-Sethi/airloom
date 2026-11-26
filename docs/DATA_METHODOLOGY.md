@@ -12,9 +12,15 @@ All endpoints are public; no API key required. Data is fetched server-side in AP
 
 ## AQI
 
-Computed only from PM2.5 and PM10 using US EPA breakpoints (EPA 454/B-18-007 Table 2), interpolated per pollutant, dominant sub index becomes the AQI. PM2.5 breakpoints: 0-12 → 0-50, 12.1-35.4 → 51-100, 35.5-55.4 → 101-150, 55.5-150.4 → 151-200, 150.5-250.4 → 201-300, 250.5-500.4 → 301-500. PM10 breakpoints: 0-54 → 0-50, 55-154 → 51-100, 155-254 → 101-150, 255-354 → 151-200, 355-424 → 201-300, 425-604 → 301-500.
+Computed only from PM2.5 and PM10 using US EPA breakpoints, interpolated per pollutant, dominant sub index becomes the AQI.
+
+**PM2.5 breakpoints (US EPA, revised February 2024):** 0-9.0 → 0-50, 9.1-35.4 → 51-100, 35.5-55.4 → 101-150, 55.5-125.4 → 151-200, 125.5-225.4 → 201-300, 225.5-325.4 → 301-500. Source: US EPA AQS AQI Breakpoints (aqs.epa.gov), 2024 revision aligned with the tightened PM2.5 annual NAAQS.
+
+**PM10 breakpoints (unchanged):** 0-54 → 0-50, 55-154 → 51-100, 155-254 → 101-150, 255-354 → 151-200, 355-424 → 201-300, 425-604 → 301-500.
 
 Categories: good ≤50, moderate 51-100, elevated 101-150, high 151-200, very-high 201-300, severe 301-500.
+
+**Important:** The AQI is computed from hourly model concentrations, not from official 24-hour station averages. The result is a planning estimate, not a regulatory AQI measurement. The UI labels hourly AQI as a "planning estimate" wherever it appears.
 
 NO2, SO2, O3, CO are shown against WHO 2021 guideline values as multiples of guideline, not folded into AQI.
 

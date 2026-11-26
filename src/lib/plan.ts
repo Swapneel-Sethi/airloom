@@ -400,7 +400,9 @@ export function buildPlan(
       action:
         indoorEstimate !== null && indoorEstimate < 35
           ? "Sleep with the bedroom door closed and the purifier on low"
-          : "Run the purifier in the bedroom through the night",
+          : profile.ventilation.includes("purifier")
+            ? "Run the purifier in the bedroom through the night"
+            : "Keep the bedroom door closed and windows shut through the night",
       reason:
         indoorEstimate !== null
           ? `Indoor PM2.5 is estimated at ${formatNumber(indoorEstimate, 0)} µg/m³ with your current setup. A closed bedroom keeps that volume stable overnight.`
@@ -408,7 +410,9 @@ export function buildPlan(
       why: [
         `Outdoor PM2.5 in this block averages ${formatNumber(pm, 0)} µg/m³.`,
         "Night time mixing is weak, so outdoor concentrations often stay flat until morning.",
-        "A purifier sized for the bedroom is more effective than moving one unit between rooms.",
+        profile.ventilation.includes("purifier")
+          ? "A purifier sized for the bedroom is more effective than moving one unit between rooms."
+          : "Without a purifier, keeping the bedroom closed limits outdoor particles from entering.",
       ],
       impact:
         indoorEstimate !== null
