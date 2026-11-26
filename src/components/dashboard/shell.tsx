@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   Activity,
   ArrowLeftRight,
@@ -10,9 +10,13 @@ import {
   ChevronDown,
   House,
   LayoutDashboard,
+  LogOut,
   MapPin,
   MessageSquare,
+  Plus,
   Settings,
+  UserRound,
+  Users,
 } from "lucide-react";
 import { NAV_ITEMS, SITE } from "@/lib/constants";
 import { cn } from "@/lib/format";
@@ -43,13 +47,75 @@ function isActive(pathname: string, href: string): boolean {
 
 export function DashboardShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const { profile } = useProfile();
+  const router = useRouter();
+  const {
+    profile,
+    hydrated,
+    activeId,
+    activeName,
+    profiles,
+    createProfile,
+    switchProfile,
+    logout,
+  } = useProfile();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const firstItemRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (hydrated && !activeId) router.replace("/profiles");
+  }, [hydrated, activeId, router]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    firstItemRef.current?.focus();
+    function onPointerDown(event: MouseEvent | TouchEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setMenuOpen(false);
+    }
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("touchstart", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("touchstart", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [menuOpen]);
+
+  if (!hydrated || !activeId) {
+    return <div className="min-h-dvh bg-night" />;
+  }
+
+  const otherProfiles = profiles.filter((record) => record.id !== activeId);
+
+  function openNewUser() {
+    setMenuOpen(false);
+    createProfile();
+    router.push("/onboarding");
+  }
+
+  function openProfile(id: string) {
+    setMenuOpen(false);
+    switchProfile(id);
+    router.push("/dashboard");
+  }
+
+  function logOut() {
+    setMenuOpen(false);
+    logout();
+    router.push("/profiles");
+  }
 
   return (
     <div className="min-h-dvh bg-night text-ink-light">
       <header className="sticky top-0 z-40 border-b border-line-dark bg-night/92 backdrop-blur">
-        <div className="shell flex h-16 items-center justify-between gap-4">
+        <div className="shell flex h-16 items-center justify-between gap-2">
           <div className="flex items-center gap-6">
             <Wordmark tone="dark" href="/dashboard" />
             <nav aria-label="Main" className="hidden items-center gap-1 lg:flex">
@@ -74,7 +140,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             </nav>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1">
             <button
               type="button"
               onClick={() => setDialogOpen(true)}
@@ -82,7 +148,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
               aria-label={`Change location. Current location ${profile.location?.name ?? "not set"}`}
             >
               <MapPin size={15} className="text-muted-dark" aria-hidden="true" />
-              <span className="max-w-[120px] truncate sm:max-w-[180px]">
+              <span className="hidden max-w-[180px] truncate sm:inline">
                 {profile.location?.name ?? "Choose city"}
               </span>
               {profile.dataMode === "demo" ? (
@@ -94,6 +160,91 @@ export function DashboardShell({ children }: { children: ReactNode }) {
               ) : null}
               <ChevronDown size={14} className="text-muted-dark" aria-hidden="true" />
             </button>
+
+            <div className="relative" ref={menuRef}>
+              <button
+                type="button"
+                onClick={() => setMenuOpen((open) => !open)}
+                aria-haspopup="menu"
+                aria-expanded={menuOpen}
+                aria-label={`Profile menu. Current profile ${activeName ?? "none"}`}
+                className="inline-flex h-11 items-center gap-1.5 rounded-lg px-2 text-[13px] text-ink-light hover:bg-white/5"
+              >
+                <UserRound size={16} className="text-muted-dark" aria-hidden="true" />
+                <span className="max-w-[68px] truncate sm:max-w-[120px]">
+                  {activeName ?? "Profile"}
+                </span>
+                <ChevronDown size={14} className="text-muted-dark" aria-hidden="true" />
+              </button>
+
+              {menuOpen ? (
+                <div
+                  role="menu"
+                  aria-label="Profiles"
+                  className="absolute right-0 top-full z-50 mt-2 w-[min(18rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-line-dark bg-surface text-ink-light shadow-2xl shadow-black/50"
+                >
+                  <div className="border-b border-line-dark px-3 py-2.5">
+                    <p className="text-[10px] uppercase tracking-[0.12em] text-muted-dark">
+                      Current profile
+                    </p>
+                    <p className="mt-0.5 truncate text-sm">{activeName ?? "No active profile"}</p>
+                  </div>
+
+                  {otherProfiles.length > 0 ? (
+                    <div className="border-b border-line-dark py-1.5">
+                      <p className="px-3 py-1 text-[10px] uppercase tracking-[0.12em] text-muted-dark">
+                        Switch profile
+                      </p>
+                      {otherProfiles.map((record, index) => (
+                        <button
+                          key={record.id}
+                          ref={index === 0 ? firstItemRef : undefined}
+                          type="button"
+                          role="menuitem"
+                          onClick={() => openProfile(record.id)}
+                          className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm hover:bg-white/5"
+                        >
+                          <UserRound size={14} className="text-muted-dark" aria-hidden="true" />
+                          <span className="truncate">{record.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  <div className="py-1.5">
+                    <button
+                      ref={otherProfiles.length === 0 ? firstItemRef : undefined}
+                      type="button"
+                      role="menuitem"
+                      onClick={openNewUser}
+                      className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-green hover:bg-white/5"
+                    >
+                      <Plus size={14} aria-hidden="true" />
+                      New user
+                    </button>
+                    <Link
+                      href="/profiles"
+                      role="menuitem"
+                      onClick={() => setMenuOpen(false)}
+                      className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-muted-dark hover:bg-white/5 hover:text-ink-light"
+                    >
+                      <Users size={14} aria-hidden="true" />
+                      Manage profiles
+                    </Link>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={logOut}
+                      className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-muted-dark hover:bg-white/5 hover:text-ink-light"
+                    >
+                      <LogOut size={14} aria-hidden="true" />
+                      Log out
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
             <Link
               href="/dashboard/settings"
               aria-label="Settings"

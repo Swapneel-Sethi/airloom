@@ -9,16 +9,35 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { DEFAULT_PROFILE, judgeProfile, parseStoredProfile } from "@/lib/profile";
+import { DEFAULT_PROFILE, freshOnboardingProfile, judgeProfile } from "@/lib/profile";
+import {
+  DEMO_PROFILE_ID,
+  DEMO_PROFILE_NAME,
+  activeIdAfterDelete,
+  createStoredProfile,
+  deleteStoredProfile,
+  readDemoProfile,
+  readProfileStore,
+  saveActiveId,
+  saveDemoProfile,
+  saveProfiles,
+  updateStoredProfile,
+  type StoredProfile,
+} from "@/lib/profiles";
 import type { Environment, UserProfile } from "@/lib/types";
-
-const STORAGE_KEY = "airloom.profile.v1";
 
 interface ProfileContextValue {
   profile: UserProfile;
   hydrated: boolean;
+  profiles: StoredProfile[];
+  activeId: string | null;
+  activeName: string | null;
+  isDemo: boolean;
   updateProfile: (patch: Partial<UserProfile>) => void;
-  replaceProfile: (next: UserProfile) => void;
+  createProfile: () => StoredProfile;
+  switchProfile: (id: string) => void;
+  logout: () => void;
+  deleteProfile: (id: string) => void;
   startJudgeScenario: () => void;
   resetProfile: () => void;
 }
@@ -26,48 +45,142 @@ interface ProfileContextValue {
 const ProfileContext = createContext<ProfileContextValue | null>(null);
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
-  const [profile, setProfile] = useState<UserProfile>(DEFAULT_PROFILE);
+  const [profiles, setProfiles] = useState<StoredProfile[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [demoProfile, setDemoProfile] = useState<UserProfile | null>(null);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    const stored = parseStoredProfile(window.localStorage.getItem(STORAGE_KEY));
-    if (stored) setProfile(stored);
+    const storage = window.localStorage;
+    const store = readProfileStore(storage);
+    setProfiles(store.profiles);
+    setActiveId(store.activeId);
+    setDemoProfile(readDemoProfile(storage));
     setHydrated(true);
   }, []);
 
   useEffect(() => {
     if (!hydrated) return;
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+      saveProfiles(window.localStorage, profiles);
     } catch {
       // Storage can be blocked in private modes. The app still works for this session.
     }
-  }, [profile, hydrated]);
+  }, [profiles, hydrated]);
 
-  const updateProfile = useCallback((patch: Partial<UserProfile>) => {
-    setProfile((current) => ({ ...current, ...patch }));
-  }, []);
-
-  const replaceProfile = useCallback((next: UserProfile) => {
-    setProfile(next);
-  }, []);
-
-  const startJudgeScenario = useCallback(() => {
-    setProfile(judgeProfile());
-  }, []);
-
-  const resetProfile = useCallback(() => {
+  useEffect(() => {
+    if (!hydrated) return;
     try {
-      window.localStorage.removeItem(STORAGE_KEY);
+      saveActiveId(window.localStorage, activeId);
     } catch {
       // Ignore storage errors.
     }
-    setProfile(DEFAULT_PROFILE);
+  }, [activeId, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      saveDemoProfile(window.localStorage, demoProfile);
+    } catch {
+      // Ignore storage errors.
+    }
+  }, [demoProfile, hydrated]);
+
+  const activeRecord = profiles.find((record) => record.id === activeId) ?? null;
+  const isDemo = activeId === DEMO_PROFILE_ID;
+
+  const profile = isDemo
+    ? (demoProfile ?? judgeProfile())
+    : (activeRecord?.profile ?? DEFAULT_PROFILE);
+
+  const updateProfile = useCallback(
+    (patch: Partial<UserProfile>) => {
+      const timestamp = new Date().toISOString();
+      if (activeId === DEMO_PROFILE_ID) {
+        setDemoProfile((current) => ({ ...(current ?? judgeProfile()), ...patch }));
+        return;
+      }
+      if (!activeId) return;
+      setProfiles((current) =>
+        current.map((record) =>
+          record.id === activeId
+            ? { ...record, profile: { ...record.profile, ...patch }, updatedAt: timestamp }
+            : record,
+        ),
+      );
+    },
+    [activeId],
+  );
+
+  const createProfile = useCallback((): StoredProfile => {
+    const record = createStoredProfile(profiles, freshOnboardingProfile());
+    setProfiles([...profiles, record]);
+    setActiveId(record.id);
+    return record;
+  }, [profiles]);
+
+  const switchProfile = useCallback(
+    (id: string) => {
+      if (profiles.some((record) => record.id === id)) setActiveId(id);
+    },
+    [profiles],
+  );
+
+  const logout = useCallback(() => setActiveId(null), []);
+
+  const deleteProfile = useCallback(
+    (id: string) => {
+      setProfiles(deleteStoredProfile(profiles, id));
+      setActiveId((current) => activeIdAfterDelete(profiles, current, id));
+    },
+    [profiles],
+  );
+
+  const startJudgeScenario = useCallback(() => {
+    setDemoProfile(judgeProfile());
+    setActiveId(DEMO_PROFILE_ID);
   }, []);
 
+  const resetProfile = useCallback(() => {
+    if (activeId === DEMO_PROFILE_ID) {
+      setDemoProfile(DEFAULT_PROFILE);
+      return;
+    }
+    if (!activeId) return;
+    setProfiles((current) => updateStoredProfile(current, activeId, DEFAULT_PROFILE));
+  }, [activeId]);
+
   const value = useMemo(
-    () => ({ profile, hydrated, updateProfile, replaceProfile, startJudgeScenario, resetProfile }),
-    [profile, hydrated, updateProfile, replaceProfile, startJudgeScenario, resetProfile],
+    () => ({
+      profile,
+      hydrated,
+      profiles,
+      activeId,
+      activeName: isDemo ? DEMO_PROFILE_NAME : (activeRecord?.name ?? null),
+      isDemo,
+      updateProfile,
+      createProfile,
+      switchProfile,
+      logout,
+      deleteProfile,
+      startJudgeScenario,
+      resetProfile,
+    }),
+    [
+      profile,
+      hydrated,
+      profiles,
+      activeId,
+      isDemo,
+      activeRecord?.name,
+      updateProfile,
+      createProfile,
+      switchProfile,
+      logout,
+      deleteProfile,
+      startJudgeScenario,
+      resetProfile,
+    ],
   );
 
   return <ProfileContext.Provider value={value}>{children}</ProfileContext.Provider>;
@@ -92,7 +205,14 @@ interface EnvironmentContextValue {
 const EnvironmentContext = createContext<EnvironmentContextValue | null>(null);
 
 export function EnvironmentProvider({ children }: { children: ReactNode }) {
-  const { profile, hydrated } = useProfile();
+  const { activeId } = useProfile();
+  return (
+    <EnvironmentScope key={activeId ?? "logged-out"}>{children}</EnvironmentScope>
+  );
+}
+
+function EnvironmentScope({ children }: { children: ReactNode }) {
+  const { profile, hydrated, activeId } = useProfile();
   const [environment, setEnvironment] = useState<Environment | null>(null);
   const [status, setStatus] = useState<EnvironmentStatus>("loading");
   const [error, setError] = useState<string | null>(null);
@@ -104,7 +224,7 @@ export function EnvironmentProvider({ children }: { children: ReactNode }) {
   const demoCity = profile.demoCity;
 
   useEffect(() => {
-    if (!hydrated) return;
+    if (!hydrated || !activeId) return;
     const controller = new AbortController();
 
     const params = new URLSearchParams();
@@ -153,7 +273,7 @@ export function EnvironmentProvider({ children }: { children: ReactNode }) {
       .finally(() => setIsRefreshing(false));
 
     return () => controller.abort();
-  }, [hydrated, dataMode, demoCity, location, reloadToken]);
+  }, [hydrated, activeId, dataMode, demoCity, location, reloadToken]);
 
   const refresh = useCallback(() => setReloadToken((token) => token + 1), []);
 
