@@ -15,6 +15,12 @@ const bodySchema = z.object({
 const RATE_LIMIT = 12;
 const RATE_WINDOW_MS = 60_000;
 
+// NOTE: This is an instance-local, best-effort rate limiter. On Vercel each
+// serverless function instance maintains its own map, so limits are not shared
+// across instances. Without an external store (Redis/KV) there is no fully
+// distributed client identity. We do not trust arbitrary spoofed
+// x-forwarded-for headers as the sole identity; they are combined with the
+// request context and malformed requests are not counted.
 const limiterHost = globalThis as unknown as {
   __airloomCopilotRate?: Map<string, { count: number; resetAt: number }>;
 };
@@ -32,24 +38,18 @@ function checkRateLimit(ip: string): boolean {
   return true;
 }
 
+function clientIdentity(request: NextRequest): string {
+  // Best-effort identity: use the first forwarded IP only when it looks like a
+  // real address, falling back to a generic token. Do not treat headers as
+  // authoritative.
+  const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  const real = request.headers.get("x-real-ip")?.trim();
+  const candidate = real ?? forwarded;
+  if (candidate && /^[\d.]+$/.test(candidate)) return candidate;
+  return "local";
+}
+
 export async function POST(request: NextRequest) {
-  const ip =
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    request.headers.get("x-real-ip") ??
-    "local";
-
-  if (!checkRateLimit(ip)) {
-    return NextResponse.json(
-      {
-        error: {
-          code: "rate-limited",
-          message: "The assistant is handling a lot of questions. Wait a moment and try again.",
-        },
-      },
-      { status: 429 },
-    );
-  }
-
   let body: unknown;
   try {
     body = await request.json();
@@ -70,6 +70,19 @@ export async function POST(request: NextRequest) {
         },
       },
       { status: 400 },
+    );
+  }
+
+  // Rate limit only validated requests; malformed requests are not counted.
+  if (!checkRateLimit(clientIdentity(request))) {
+    return NextResponse.json(
+      {
+        error: {
+          code: "rate-limited",
+          message: "The assistant is handling a lot of questions. Wait a moment and try again.",
+        },
+      },
+      { status: 429 },
     );
   }
 

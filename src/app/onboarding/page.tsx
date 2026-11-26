@@ -13,6 +13,7 @@ import {
 import type { GeoLocation } from "@/lib/types";
 import { useProfile } from "@/components/providers";
 import { Field, inputClass, ToggleChip } from "@/components/dashboard/controls";
+import { NumericField } from "@/components/dashboard/numeric-field";
 import { Wordmark } from "@/components/logo";
 import { buttonClass, SectionLabel } from "@/components/ui";
 import { cn } from "@/lib/format";
@@ -339,19 +340,15 @@ export default function OnboardingPage() {
                   />
                 </Field>
                 <Field label="Commute distance" htmlFor="onboard-distance" hint="One way, in kilometres">
-                  <input
-                    id="onboard-distance"
-                    type="number"
+                  <NumericField
+                    htmlFor="onboard-distance"
+                    value={profile.commuteDistanceKm}
                     min={0.5}
                     max={80}
                     step={0.5}
-                    value={profile.commuteDistanceKm}
-                    onChange={(event) =>
-                      updateProfile({
-                        commuteDistanceKm: Math.min(80, Math.max(0.5, Number(event.target.value) || 0.5)),
-                      })
+                    onChange={(next) =>
+                      updateProfile({ commuteDistanceKm: next })
                     }
-                    className={inputClass}
                   />
                 </Field>
                 <Field label="Outdoor activity" htmlFor="onboard-activity">

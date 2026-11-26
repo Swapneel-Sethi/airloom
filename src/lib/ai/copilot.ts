@@ -12,7 +12,7 @@ import type {
   UserProfile,
 } from "../types";
 import { buildCopilotContext, type CopilotContext } from "./context";
-import { deterministicAnswer } from "./fallback";
+import { deterministicAnswer, isAcuteHealthScenario } from "./fallback";
 import { AiError, generateWithGemini, PROMPT_VERSION } from "./gemini";
 
 export interface CopilotResult {
@@ -46,6 +46,22 @@ export async function runCopilot(
   const context = buildCopilotContext(environment, profile, plan, indoor, commute);
 
   const startedAt = Date.now();
+
+  // NON NEGOTIABLE: acute health safety runs before Gemini.
+  if (isAcuteHealthScenario(question)) {
+    return {
+      answer: deterministicAnswer(question, context),
+      meta: {
+        provider: "rules",
+        model: null,
+        fallbackReason: "safety-gate",
+        promptVersion: PROMPT_VERSION,
+        latencyMs: Date.now() - startedAt,
+      },
+      context,
+      environment,
+    };
+  }
 
   if (!process.env.GEMINI_API_KEY) {
     return {

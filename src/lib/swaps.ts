@@ -85,7 +85,7 @@ export function buildSwaps(
     swaps.push({
       id: "timing-swap",
       title: "Move outdoor sessions to the low window",
-      change: `Schedule outdoor activity between ${plan.bestWindow.label} instead of the morning.`,
+      change: `Schedule outdoor activity from ${plan.bestWindow.label} instead of the morning.`,
       why: `The two hour average at ${plan.bestWindow.label} is ${formatNumber(plan.bestWindow.avgPm25, 0)} µg/m³, the lowest of the day. Timing changes exposure without changing your routine.`,
       impact:
         current && current.impact

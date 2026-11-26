@@ -7,6 +7,7 @@ import { locationLabel } from "@/lib/profile";
 import { useEnvironment, useProfile } from "@/components/providers";
 import { useDerived } from "@/components/dashboard/use-derived";
 import { Field, inputClass } from "@/components/dashboard/controls";
+import { NumericField } from "@/components/dashboard/numeric-field";
 import {
   PageHeader,
   PlanList,
@@ -117,19 +118,15 @@ export default function TodayPage() {
             />
           </Field>
           <Field label="Commute distance" htmlFor="commute-distance" hint="One way, in kilometres">
-            <input
-              id="commute-distance"
-              type="number"
+            <NumericField
+              htmlFor="commute-distance"
+              value={profile.commuteDistanceKm}
               min={0.5}
               max={80}
               step={0.5}
-              value={profile.commuteDistanceKm}
-              onChange={(event) =>
-                updateProfile({
-                  commuteDistanceKm: Math.min(80, Math.max(0.5, Number(event.target.value) || 0.5)),
-                })
+              onChange={(next) =>
+                updateProfile({ commuteDistanceKm: next })
               }
-              className={inputClass}
             />
           </Field>
           <Field label="Outdoor activity" htmlFor="activity">

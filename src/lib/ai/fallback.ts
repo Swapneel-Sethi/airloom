@@ -29,6 +29,14 @@ function safetyNote(question: string): string | null {
 
 const ACUTE_STANDALONE_SYMPTOMS = [
   "chest pain",
+  "chest tightness",
+  "breathless",
+  "wheezing",
+  "wheeze",
+  "inhaler not working",
+  "blue lips",
+  "faint",
+  "dizzy",
   "difficulty breathing",
   "shortness of breath",
   "asthma attack",
@@ -36,7 +44,7 @@ const ACUTE_STANDALONE_SYMPTOMS = [
   "can't breathe",
 ];
 
-const ACUTE_SYMPTOM_WORDS = ["asthma", "wheez", "cough"];
+const ACUTE_SYMPTOM_WORDS = ["asthma", "wheez", "cough", "respiratory"];
 
 const ACUTE_CONTEXT_WORDS = [
   "child",
@@ -53,7 +61,7 @@ const ACUTE_CONTEXT_WORDS = [
   "attack",
 ];
 
-function isAcuteHealthScenario(question: string): boolean {
+export function isAcuteHealthScenario(question: string): boolean {
   const normalized = question.toLowerCase();
 
   if (ACUTE_STANDALONE_SYMPTOMS.some((symptom) => normalized.includes(symptom))) {
@@ -299,6 +307,26 @@ function swapsAnswer(context: CopilotContext): CopilotAnswer {
   };
 }
 
+const INTENT_PATTERNS: Array<{
+  name: string;
+  pattern: RegExp;
+  handler: (context: CopilotContext) => CopilotAnswer;
+}> = [
+  { name: "purifier", pattern: /\b(purifier|filter|air cleaner|hepa)\b/, handler: indoorAnswer },
+  { name: "indoor-windows", pattern: /\b(window|ventilate|open|fresh air|air out)\b/, handler: ventilationAnswer },
+  { name: "commute", pattern: /\b(commute|travel|leave|office|work|bus|metro|train|cab|scooter|trip|ride|drive|transport|cycle|compare)\b/, handler: commuteAnswer },
+  { name: "family", pattern: /\b(family|child|kid|school|parent|mother|baby|infant|toddler|older adult|elderly|grandparent)\b/, handler: familyAnswer },
+  { name: "activity", pattern: /\b(run|jog|exercise|walk|walking|cycl|gym|cricket|sport|session|workout)\b/, handler: activityAnswer },
+  { name: "swaps", pattern: /\b(swap|swaps|sustain|carbon|co2|emission|impact|change mode|reduce emission)\b/, handler: swapsAnswer },
+];
+
+function matchIntent(normalized: string): ((context: CopilotContext) => CopilotAnswer) | null {
+  for (const intent of INTENT_PATTERNS) {
+    if (intent.pattern.test(normalized)) return intent.handler;
+  }
+  return null;
+}
+
 export function deterministicAnswer(
   question: string,
   context: CopilotContext,
@@ -309,20 +337,10 @@ export function deterministicAnswer(
     return acuteHealthAnswer();
   }
 
+  const handler = matchIntent(normalized);
   let answer: CopilotAnswer;
-
-  if (/(run|jog|exercise|walk|cycl|gym|cricket|play)/.test(normalized)) {
-    answer = activityAnswer(context);
-  } else if (/(window|ventilat|open|fresh air)/.test(normalized)) {
-    answer = ventilationAnswer(context);
-  } else if (/(commute|travel|leave|office|bus|metro|train|cab|car|scooter|trip)/.test(normalized)) {
-    answer = commuteAnswer(context);
-  } else if (/(indoor|purifier|filter|cook|kitchen|dust|room|home)/.test(normalized)) {
-    answer = indoorAnswer(context);
-  } else if (/(family|child|kid|school|parent|older)/.test(normalized)) {
-    answer = familyAnswer(context);
-  } else if (/(swap|sustain|carbon|emission|impact|change)/.test(normalized)) {
-    answer = swapsAnswer(context);
+  if (handler) {
+    answer = handler(context);
   } else {
     const value = pm25(context);
     const top = context.plan[0];

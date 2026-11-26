@@ -13,15 +13,17 @@ import {
   VENTILATION_OPTIONS,
   WORKSPACE_OPTIONS,
 } from "@/lib/constants";
-import { locationLabel } from "@/lib/profile";
+import { effectiveLocation, effectiveLocationLabel } from "@/lib/profile";
 import { useProfile } from "@/components/providers";
 import { LocationDialog } from "@/components/dashboard/location-dialog";
 import { Field, inputClass, Segmented, ToggleChip } from "@/components/dashboard/controls";
+import { NumericField } from "@/components/dashboard/numeric-field";
 import { PageHeader } from "@/components/dashboard/blocks";
 import { buttonClass, SectionLabel } from "@/components/ui";
 
 export default function SettingsPage() {
   const { profile, updateProfile, resetProfile } = useProfile();
+  const loc = effectiveLocation(profile);
   const [dialogOpen, setDialogOpen] = useState(false);
 
   function toggle<T extends string>(list: T[], value: T): T[] {
@@ -38,11 +40,11 @@ export default function SettingsPage() {
             <SectionLabel tone="dark">Location</SectionLabel>
             <p className="mt-2 flex items-center gap-2 text-lg">
               <MapPin size={16} className="text-muted-dark" aria-hidden="true" />
-              {locationLabel(profile.location)}
+              {effectiveLocationLabel(profile)}
             </p>
             <p className="mt-1 text-[11px] text-muted-dark">
-              {profile.location
-                ? `${profile.location.latitude.toFixed(3)}, ${profile.location.longitude.toFixed(3)}`
+              {loc
+                ? `${loc.latitude.toFixed(3)}, ${loc.longitude.toFixed(3)}`
                 : "No coordinates saved"}
             </p>
           </div>
@@ -188,19 +190,15 @@ export default function SettingsPage() {
             />
           </Field>
           <Field label="Commute distance" htmlFor="settings-distance" hint="One way, in kilometres">
-            <input
-              id="settings-distance"
-              type="number"
+            <NumericField
+              htmlFor="settings-distance"
+              value={profile.commuteDistanceKm}
               min={0.5}
               max={80}
               step={0.5}
-              value={profile.commuteDistanceKm}
-              onChange={(event) =>
-                updateProfile({
-                  commuteDistanceKm: Math.min(80, Math.max(0.5, Number(event.target.value) || 0.5)),
-                })
+              onChange={(next) =>
+                updateProfile({ commuteDistanceKm: next })
               }
-              className={inputClass}
             />
           </Field>
           <Field label="Outdoor activity" htmlFor="settings-activity">

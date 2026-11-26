@@ -257,7 +257,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <main className="shell pb-24 pt-6 lg:pb-16 lg:pt-9">{children}</main>
+      <main id="main-content" className="shell pb-24 pt-6 lg:pb-16 lg:pt-9">{children}</main>
 
       <footer className="shell hidden pb-8 lg:block">
         <p className="max-w-2xl border-t border-line-dark pt-5 text-[11px] leading-relaxed text-muted-dark">

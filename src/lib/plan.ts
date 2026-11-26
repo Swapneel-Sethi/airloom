@@ -113,9 +113,10 @@ export function buildPlan(
   function windowsFor(date: string) {
     const existing = windowCache.get(date);
     if (existing) return existing;
+    const fromHour = date === today ? currentHour : 6;
     const value = {
-      best: findBestWindow(environment.hourly, date),
-      worst: findWorstWindow(environment.hourly, date),
+      best: findBestWindow(environment.hourly, date, fromHour),
+      worst: findWorstWindow(environment.hourly, date, fromHour),
     };
     windowCache.set(date, value);
     return value;
@@ -179,8 +180,10 @@ export function buildPlan(
     const aqi = Math.round(stats.avgAqi);
     const confidence = confidenceFor(block.start, date, today, environment.source);
     const baseBasis = [
-      `${formatNumber(stats.count, 0)} hourly values averaged for ${block.label.toLowerCase()}`,
-      "Open-Meteo CAMS PM2.5 model estimate",
+      `${formatNumber(stats.count, 0)} hourly value${stats.count === 1 ? "" : "s"} averaged for ${block.label.toLowerCase()}`,
+      environment.source === "demo"
+        ? "Seeded demo scenario using Airloom's deterministic diurnal model"
+        : "Open-Meteo CAMS PM2.5 model estimate",
     ];
     const sensitivityBasis = sensitive
       ? ["Household sensitivity selected, thresholds tightened by 25 percent"]
