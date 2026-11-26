@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { Check } from "lucide-react";
 import { cn } from "@/lib/format";
 
 export const inputClass =
@@ -50,15 +51,32 @@ export function ToggleChip({
       aria-pressed={selected}
       onClick={onClick}
       className={cn(
-        "min-h-11 rounded-lg border px-3 py-2 text-left text-[13px] transition-colors",
+        "flex min-h-11 items-start gap-2 rounded-lg border px-3 py-2 text-left text-[13px] transition-colors",
         selected
-          ? "border-white/45 bg-white/8 text-ink-light"
+          ? "border-green/60 bg-green/10 text-ink-light"
           : "border-line-dark text-muted-dark hover:border-white/25 hover:text-ink-light",
       )}
     >
-      {children}
-      {hint ? (
-        <span className="mt-0.5 block text-[10px] leading-tight text-muted-dark/80">{hint}</span>
+      <span className="min-w-0 flex-1">
+        {children}
+        {hint ? (
+          <span
+            className={cn(
+              "mt-0.5 block text-[10px] leading-tight",
+              selected ? "text-green/80" : "text-muted-dark/80",
+            )}
+          >
+            {hint}
+          </span>
+        ) : null}
+      </span>
+      {selected ? (
+        <Check
+          size={15}
+          strokeWidth={2.5}
+          aria-hidden="true"
+          className="mt-0.5 shrink-0 text-green"
+        />
       ) : null}
     </button>
   );
