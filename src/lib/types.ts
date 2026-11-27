@@ -261,7 +261,7 @@ export interface CopilotAnswer {
 }
 
 export interface CopilotMeta {
-  provider: "gemini" | "rules";
+  provider: "gemini" | "nemotron" | "rules";
   model: string | null;
   fallbackReason: string | null;
   promptVersion: string;

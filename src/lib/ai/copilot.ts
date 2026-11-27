@@ -12,8 +12,7 @@ import type {
   UserProfile,
 } from "../types";
 import { buildCopilotContext, type CopilotContext } from "./context";
-import { deterministicAnswer, isAcuteHealthScenario } from "./fallback";
-import { AiError, generateWithGemini, PROMPT_VERSION } from "./gemini";
+import { ProviderRegistry } from "./providers/registry";
 
 export interface CopilotResult {
   answer: CopilotAnswer;
@@ -47,54 +46,22 @@ export async function runCopilot(
 
   const startedAt = Date.now();
 
-  // NON NEGOTIABLE: acute health safety runs before Gemini.
-  if (isAcuteHealthScenario(question)) {
-    return {
-      answer: deterministicAnswer(question, context),
-      meta: {
-        provider: "rules",
-        model: null,
-        fallbackReason: "safety-gate",
-        promptVersion: PROMPT_VERSION,
-        latencyMs: Date.now() - startedAt,
-      },
-      context,
-      environment,
-    };
-  }
+  const registry = new ProviderRegistry();
+  const result = await registry.generate({
+    question,
+    context,
+  });
 
-  if (!process.env.GEMINI_API_KEY) {
-    return {
-      answer: deterministicAnswer(question, context),
-      meta: {
-        provider: "rules",
-        model: null,
-        fallbackReason: "no-key",
-        promptVersion: PROMPT_VERSION,
-        latencyMs: Date.now() - startedAt,
-      },
-      context,
-      environment,
-    };
-  }
-
-  try {
-    const result = await generateWithGemini(question, JSON.stringify(context));
-    return { ...result, context, environment };
-  } catch (error) {
-    const reason =
-      error instanceof AiError ? error.code : "provider-error";
-    return {
-      answer: deterministicAnswer(question, context),
-      meta: {
-        provider: "rules",
-        model: null,
-        fallbackReason: reason,
-        promptVersion: PROMPT_VERSION,
-        latencyMs: Date.now() - startedAt,
-      },
-      context,
-      environment,
-    };
-  }
+  return {
+    answer: result.answer,
+    meta: {
+      provider: result.provider as "gemini" | "rules" | "nemotron",
+      model: null,
+      fallbackReason: result.fallbackReason,
+      promptVersion: "airloom-copilot-v1",
+      latencyMs: Date.now() - startedAt,
+    },
+    context,
+    environment,
+  };
 }
