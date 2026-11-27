@@ -1,19 +1,10 @@
 import type { CopilotContext } from "../context";
 import type { ProviderResult } from "./base";
 import { copilotAnswerSchema } from "../schema";
+import { AiError } from "./base";
 
 const DEFAULT_MODEL = "nvidia/nemotron-3.5-super-vl-120b-a12b";
 const BASE_URL = "https://integrate.api.nvidia.com/v1";
-
-export class AiError extends Error {
-  code: "missing-key" | "timeout" | "provider-error" | "invalid-output" | "blocked";
-
-  constructor(code: AiError["code"], message: string) {
-    super(message);
-    this.name = "AiError";
-    this.code = code;
-  }
-}
 
 // JSON Schema for structured output matching copilotAnswerSchema
 const NEMOTRON_JSON_SCHEMA = {

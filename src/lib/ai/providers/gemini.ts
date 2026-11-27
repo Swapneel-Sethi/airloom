@@ -1,19 +1,10 @@
 import type { CopilotContext } from "../context";
 import type { ProviderResult } from "./base";
 import { copilotAnswerSchema } from "../schema";
+import { AiError } from "./base";
 import { validateNumberGrounding } from "../grounding";
 
 const DEFAULT_MODEL = "gemini-2.5-flash";
-
-export class AiError extends Error {
-  code: "missing-key" | "timeout" | "provider-error" | "invalid-output" | "blocked";
-
-  constructor(code: AiError["code"], message: string) {
-    super(message);
-    this.name = "AiError";
-    this.code = code;
-  }
-}
 
 export class GeminiProvider {
   readonly name = "gemini";

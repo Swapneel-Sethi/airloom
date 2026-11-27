@@ -39,12 +39,15 @@ export function LocationDialog({
     if (!open) return;
     const trimmed = query.trim();
     if (trimmed.length < 2) {
-      setResults([]);
-      setSearching(false);
+      queueMicrotask(() => {
+        setResults([]);
+        setSearching(false);
+      });
       return;
     }
+
     const controller = new AbortController();
-    setSearching(true);
+    queueMicrotask(() => setSearching(true));
     const timer = window.setTimeout(() => {
       fetch(`/api/locations?q=${encodeURIComponent(trimmed)}`, {
         signal: controller.signal,

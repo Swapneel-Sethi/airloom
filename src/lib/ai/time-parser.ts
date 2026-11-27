@@ -71,20 +71,6 @@ export function parseExplicitTime(question: string): ExplicitTime | null {
 }
 
 /**
- * Find the hourly forecast point covering the requested time.
- * Currently unused - context provides time windows directly.
- */
-export function findHourlyPointForTime(
-  _hourly: CopilotContext["plan"] | undefined,
-  _requestedHour: number,
-  _requestedMinute: number
-): { label: string; pm25: number; aqi: number } | null {
-  // This would need access to the hourly data from context
-  // For now, return null - the context should provide time windows
-  return null;
-}
-
-/**
  * Evaluate a user-requested outdoor time against verified forecast data.
  */
 export function evaluateRequestedOutdoorTime(

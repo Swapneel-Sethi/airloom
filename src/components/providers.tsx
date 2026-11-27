@@ -53,10 +53,12 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const storage = window.localStorage;
     const store = readProfileStore(storage);
-    setProfiles(store.profiles);
-    setActiveId(store.activeId);
-    setDemoProfile(readDemoProfile(storage));
-    setHydrated(true);
+    queueMicrotask(() => {
+      setProfiles(store.profiles);
+      setActiveId(store.activeId);
+      setDemoProfile(readDemoProfile(storage));
+      setHydrated(true);
+    });
   }, []);
 
   useEffect(() => {
@@ -240,8 +242,10 @@ function EnvironmentScope({ children }: { children: ReactNode }) {
       params.set("tz", location.timezone);
     }
 
-    setIsRefreshing(true);
-    setError(null);
+    queueMicrotask(() => {
+      setError(null);
+      setIsRefreshing(true);
+    });
 
     fetch(`/api/environment?${params.toString()}`, { signal: controller.signal })
       .then(async (response) => {

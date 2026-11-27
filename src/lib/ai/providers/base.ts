@@ -3,6 +3,16 @@ import type { CopilotAnswer, CopilotMeta } from "../../types";
 
 export type { CopilotContext };
 
+export class AiError extends Error {
+  code: "missing-key" | "timeout" | "provider-error" | "invalid-output" | "blocked";
+
+  constructor(code: AiError["code"], message: string) {
+    super(message);
+    this.name = "AiError";
+    this.code = code;
+  }
+}
+
 export interface ProviderResult {
   answer: CopilotAnswer;
   meta: CopilotMeta;

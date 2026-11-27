@@ -32,19 +32,19 @@ type ProviderEntry = {
   };
 };
 
-export class ProfileRegistry {
-  private profiles: ProviderEntry[] = [];
+export class ProviderRegistry {
+  private providers: ProviderEntry[] = [];
 
   constructor() {
-    this.profiles.push({
+    this.providers.push({
       name: "nemotron",
       provider: new NemotronProvider(process.env.NVIDIA_API_KEY),
     });
-    this.profiles.push({
+    this.providers.push({
       name: "gemini",
       provider: new GeminiProvider(process.env.GEMINI_API_KEY),
     });
-    this.profiles.push({
+    this.providers.push({
       name: "deterministic",
       provider: new DeterministicProvider(),
     });
@@ -70,7 +70,7 @@ export class ProfileRegistry {
       ? { ...context, requestedTime: explicitTime }
       : context;
 
-    for (const entry of this.profiles) {
+    for (const entry of this.providers) {
       try {
         const result = await entry.provider.generate(question, enhancedContext);
         const validation = await this.validateResult(result.answer, enhancedContext);
