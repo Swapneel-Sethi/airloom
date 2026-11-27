@@ -26,7 +26,7 @@ Next.js 16 App Router, React 19, TypeScript, Tailwind CSS 4, Zod, lucide-react. 
 3. Client providers (`ProfileProvider`, `EnvironmentProvider`) hydrate state and re-fetch on location/mode changes.
 4. `useDerived` recomputes `buildPlan`, `buildIndoorOutlook`, `compareCommute` whenever environment or profile changes.
 5. Pages render from the derived plan; charts render from `environment.hourly`.
-6. Assistant POSTs `/api/copilot` with question + profile; server builds a `CopilotContext`, tries Gemini, falls back to deterministic rules, returns a Zod-validated answer plus grounding metadata.
+6. Assistant POSTs `/api/copilot` with question + profile; server builds a `CopilotContext`, then runs the Nemotron → Gemini → deterministic rules pipeline, returning a Zod-validated answer plus grounding metadata.
 
 ## Provenance
 
