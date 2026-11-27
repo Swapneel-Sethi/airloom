@@ -18,7 +18,9 @@ Computed only from PM2.5 and PM10 using US EPA breakpoints, interpolated per pol
 
 **PM10 breakpoints (unchanged):** 0-54 → 0-50, 55-154 → 51-100, 155-254 → 101-150, 255-354 → 151-200, 355-424 → 201-300, 425-604 → 301-500.
 
-Categories: good ≤50, moderate 51-100, elevated 101-150, high 151-200, very-high 201-300, severe 301-500.
+Categories: Airloom planning labels mapped to EPA numerical ranges (NOT official EPA category names):
+good ≤50, moderate 51-100, elevated 101-150, high 151-200, very-high 201-300, severe 301-500.
+Official EPA names: Good, Moderate, Unhealthy for Sensitive Groups, Unhealthy, Very Unhealthy, Hazardous.
 
 **Important:** The AQI is computed from hourly model concentrations, not from official 24-hour station averages. The result is a planning estimate, not a regulatory AQI measurement. The UI labels hourly AQI as a "planning estimate" wherever it appears.
 
@@ -30,11 +32,13 @@ Exposure proxy = PM2.5 × hours × mode factor, units µg/m³·h. A planning est
 
 ## Emission factors
 
-Per passenger km: car 0.17 kg CO2/km, transit 0.103, two-wheeler 0.085, walk/cycle/remote 0. Stated as planning values, not life-cycle audit.
+Per passenger km: car 0.17 kg CO2/km, transit 0.02, two-wheeler 0.0357, walk/cycle/remote 0.
+Source: India GHG Program / WRI India conversion factors for passenger transport.
+Stated as planning values, not life-cycle audit.
 
 ## Indoor model
 
-Indoor PM2.5 = outdoor PM2.5 × infiltration factor. Base factor 0.62; natural ventilation 0.8; mechanical 0.45; purifier multiplies by 0.38. Cooking bump: daily +18, sometimes +9, rarely +3 µg/m³. Ventilation window = best two-hour window below 30 µg/m³. A planning model, not a sensor reading.
+Indoor PM2.5 = outdoor PM2.5 × infiltration factor. Base factor 0.62; natural ventilation 0.8; mechanical 0.45; purifier multiplies by 0.38. Cooking bump: daily +18, sometimes +9, rarely +3 µg/m³. Ventilation window = best two-hour window below household threshold (30 µg/m³ sensitive, 40 µg/m³ standard). A planning model, not a sensor reading.
 
 ## Demo data
 

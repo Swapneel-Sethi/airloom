@@ -56,6 +56,13 @@ export const AQI_CATEGORIES: Record<
   AqiCategory,
   { label: string; max: number; token: string }
 > = {
+  /**
+   * Category labels are Airloom planning labels mapped to EPA numerical ranges.
+   * They are NOT the official EPA category names (which are Good, Moderate,
+   * Unhealthy for Sensitive Groups, Unhealthy, Very Unhealthy, Hazardous).
+   * The numerical breakpoints follow the EPA 2024 table; the labels are
+   * Airloom's own planning terminology. See docs/DATA_METHODOLOGY.md.
+   */
   good: { label: "Good", max: 50, token: "var(--sev-good)" },
   moderate: { label: "Moderate", max: 100, token: "var(--sev-moderate)" },
   elevated: { label: "Elevated", max: 150, token: "var(--sev-elevated)" },

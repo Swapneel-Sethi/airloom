@@ -1,4 +1,5 @@
 import { formatNumber } from "./format";
+import { TRANSPORT_OPTIONS } from "./constants";
 import type {
   CommuteComparison,
   DailyPlan,
@@ -8,12 +9,14 @@ import type {
 } from "./types";
 
 /**
- * Emission factors are per passenger km planning values, in the range published
- * by the UK Department for Energy Security and Net Zero conversion factors for
- * passenger transport. They are estimates, not measurements of this trip.
+ * Emission factors are per passenger km planning values from the India GHG
+ * Program / WRI India, defined in src/lib/constants.ts (TRANSPORT_OPTIONS).
+ * They are estimates, not measurements of this trip.
  */
-const CAR_FACTOR = 0.17;
-const TRANSIT_FACTOR = 0.103;
+const transportFactor = (mode: string): number => {
+  const option = TRANSPORT_OPTIONS.find((o) => o.value === mode);
+  return option?.co2PerKm ?? 0;
+};
 
 export function buildSwaps(
   environment: Environment,
@@ -28,9 +31,9 @@ export function buildSwaps(
   const hasTransit = profile.transport.includes("transit");
 
   if ((hasCar || hasTwoWheeler) && hasTransit && distance >= 2) {
-    const factor = hasCar ? CAR_FACTOR : 0.085;
+    const factor = hasCar ? transportFactor("car") : transportFactor("two-wheeler");
     const annualKm = distance * 2 * 2 * 48;
-    const saved = Math.round(annualKm * (factor - TRANSIT_FACTOR));
+    const saved = Math.round(annualKm * (factor - transportFactor("transit")));
     swaps.push({
       id: "commute-swap",
       title: "Swap two commute days for public transport",
@@ -43,8 +46,7 @@ export function buildSwaps(
       effort: "medium",
       frequency: "Two days a week",
       horizon: "This season",
-      basis:
-        "Estimate using per passenger km emission factors of 0.17 kg CO2 for a car and 0.103 kg CO2 for bus transit.",
+      basis: `Estimate using per passenger km emission factors of ${transportFactor("car").toFixed(2)} kg CO2 for a car and ${transportFactor("transit").toFixed(2)} kg CO2 for bus transit.`,
       co2SavedKgPerYear: Math.max(0, saved),
     });
   }
@@ -61,7 +63,7 @@ export function buildSwaps(
       frequency: "Two days a week",
       horizon: "This season",
       basis: "Distance based estimate from your saved commute distance.",
-      co2SavedKgPerYear: Math.round(annualKm * CAR_FACTOR),
+      co2SavedKgPerYear: Math.round(annualKm * transportFactor("car")),
     });
   }
 
@@ -76,7 +78,7 @@ export function buildSwaps(
     frequency: "Weekly",
     horizon: "Ongoing",
     basis:
-      "Estimate using 4 km per week avoided and 0.17 kg CO2 per car km. Actual distance depends on your errands.",
+      `Estimate using 4 km per week avoided and ${transportFactor("car").toFixed(2)} kg CO2 per car km. Actual distance depends on your errands.`,
     co2SavedKgPerYear: 35,
   });
 

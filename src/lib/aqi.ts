@@ -11,6 +11,12 @@ import type {
  * PM2.5 breakpoints revised February 2024 (EPA PM NAAQS revision).
  * Source: US EPA AQS AQI Breakpoints (aqs.epa.gov), Table for 24-hour PM2.5.
  *
+ * The category labels (good, moderate, elevated, high, very-high, severe) are
+ * Airloom planning labels mapped to the EPA numerical ranges. They are NOT the
+ * official EPA category names (which are Good, Moderate, Unhealthy for Sensitive
+ * Groups, Unhealthy, Very Unhealthy, Hazardous). The numerical breakpoints
+ * follow the EPA 2024 table; the labels are Airloom's own planning terminology.
+ *
  * The source data is an hourly model concentration, not a 24 hour average, so
  * the result is an estimate. See docs/DATA_METHODOLOGY.md.
  */
