@@ -52,6 +52,16 @@ function getValidTimeRanges(context: CopilotContext): Array<{ label: string; sta
     }
   }
 
+  // Add requested time window if available
+  if (context.requestedTime) {
+    const hour = context.requestedTime.hour;
+    ranges.push({
+      label: context.requestedTime.label,
+      startHour: hour,
+      endHour: hour + 1,
+    });
+  }
+
   return ranges;
 }
 

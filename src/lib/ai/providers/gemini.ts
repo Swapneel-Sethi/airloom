@@ -1,6 +1,7 @@
 import type { CopilotContext } from "../context";
 import type { ProviderResult } from "./base";
 import { copilotAnswerSchema } from "../schema";
+import { validateNumberGrounding } from "../grounding";
 
 const DEFAULT_MODEL = "gemini-2.5-flash";
 
@@ -182,7 +183,7 @@ Named facts available in context:
       );
     }
 
-    // Grounding validation
+    // Grounding validation - use shared validator
     const groundingResult = validateNumberGrounding(validated.data, JSON.stringify(context));
     if (!groundingResult.valid) {
       throw new AiError("invalid-output", groundingResult.errors.join(", "));
@@ -199,68 +200,6 @@ Named facts available in context:
       },
     };
   }
-}
-
-// Shared grounding validation function
-export function validateNumberGrounding(
-  answer: { recommendation: string; why: string[]; whatToDo: string[]; alternative: string; dataUsed: string[] },
-  contextJson: string
-): { valid: boolean; errors: string[] } {
-  const text = [
-    answer.recommendation,
-    ...answer.why,
-    ...answer.whatToDo,
-    answer.alternative,
-  ].join(" ");
-
-  // All numbers present in the context (as JSON values)
-  const contextNumbers = new Set<string>();
-  const contextStr = JSON.stringify(contextJson);
-  const contextNumMatches = contextStr.match(/-?\d+\.?\d*/g);
-  if (contextNumMatches) {
-    for (const m of contextNumMatches) {
-      contextNumbers.add(m);
-      const asNum = Number(m);
-      if (Number.isFinite(asNum)) {
-        contextNumbers.add(Math.round(asNum).toString());
-        contextNumbers.add(asNum.toFixed(1));
-      }
-    }
-  }
-
-  // Time values from context (HH:MM format)
-  const contextTimes = new Set<string>();
-  const timeMatches = contextStr.match(/\d{2}:\d{2}/g);
-  if (timeMatches) {
-    for (const m of timeMatches) {
-      contextTimes.add(m);
-    }
-  }
-
-  // Find all numbers in the answer text
-  const answerNumMatches = text.match(/-?\d+\.?\d*/g);
-  if (!answerNumMatches) return { valid: true, errors: [] };
-
-  const errors: string[] = [];
-  for (const match of answerNumMatches) {
-    const num = Number(match);
-    if (!Number.isFinite(num)) continue;
-
-    // Skip common neutral numbers
-    if (num === 0 || num === 1) continue;
-
-    // Skip percentage values
-    if (match.endsWith("%")) continue;
-
-    const isInContext = contextNumbers.has(match) || contextNumbers.has(num.toString());
-    const isTime = contextTimes.has(match);
-
-    if (!isInContext && !isTime) {
-      errors.push(`Number "${match}" not found in verified context`);
-    }
-  }
-
-  return { valid: errors.length === 0, errors };
 }
 
 export const PROMPT_VERSION = "airloom-copilot-v1";
