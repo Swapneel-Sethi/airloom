@@ -15,6 +15,46 @@ export class AiError extends Error {
   }
 }
 
+// JSON Schema for structured output matching copilotAnswerSchema
+const NEMOTRON_JSON_SCHEMA = {
+  name: "airloom_copilot_answer",
+  strict: true,
+  schema: {
+    type: "object",
+    properties: {
+      recommendation: { type: "string", minLength: 1, maxLength: 600 },
+      why: {
+        type: "array",
+        items: { type: "string", minLength: 1, maxLength: 320 },
+        minItems: 1,
+        maxItems: 4,
+      },
+      whatToDo: {
+        type: "array",
+        items: { type: "string", minLength: 1, maxLength: 260 },
+        minItems: 1,
+        maxItems: 4,
+      },
+      alternative: { type: "string", minLength: 1, maxLength: 420 },
+      dataUsed: {
+        type: "array",
+        items: { type: "string", minLength: 1, maxLength: 160 },
+        maxItems: 6,
+      },
+      safetyNote: { type: ["string", "null"], maxLength: 420 },
+    },
+    required: [
+      "recommendation",
+      "why",
+      "whatToDo",
+      "alternative",
+      "dataUsed",
+      "safetyNote",
+    ],
+    additionalProperties: false,
+  },
+};
+
 export class NemotronProvider {
   readonly name = "nemotron";
 
@@ -68,10 +108,18 @@ CRITICAL: You must return valid JSON only. Do not include any markdown formattin
       temperature: 0.35,
       max_tokens: 1100,
       stream: false,
+      // Structured output with JSON Schema
+      response_format: {
+        type: "json_schema",
+        json_schema: NEMOTRON_JSON_SCHEMA,
+      },
+      // Disable reasoning for faster, structured responses
+      reasoning_effort: "none",
     };
 
     let response: Response;
     try {
+      // 9 second timeout for Nemotron
       response = await fetch(`${BASE_URL}/chat/completions`, {
         method: "POST",
         headers: {
@@ -79,7 +127,7 @@ CRITICAL: You must return valid JSON only. Do not include any markdown formattin
           "Authorization": `Bearer ${this.apiKey}`,
         },
         body: JSON.stringify(body),
-        signal: AbortSignal.timeout(22000),
+        signal: AbortSignal.timeout(9000),
       });
     } catch (error) {
       const timedOut = error instanceof Error && error.name === "TimeoutError";
@@ -95,22 +143,28 @@ CRITICAL: You must return valid JSON only. Do not include any markdown formattin
 
     const data = await response.json();
 
-    const text =
-      data.choices?.[0]?.message?.content?.trim() ?? "";
+    const content = data.choices?.[0]?.message?.content;
 
-    if (!text) throw new AiError("invalid-output", "Nemotron returned an empty response");
-
-    const start = text.indexOf("{");
-    const end = text.lastIndexOf("}");
-    if (start === -1 || end === -1) {
-      throw new AiError("invalid-output", "Nemotron response was not JSON");
+    if (!content) {
+      throw new AiError("invalid-output", "Nemotron returned an empty response");
     }
 
+    // With structured output, content should be valid JSON directly
     let parsed: unknown;
     try {
-      parsed = JSON.parse(text.slice(start, end + 1));
+      parsed = JSON.parse(content);
     } catch {
-      throw new AiError("invalid-output", "Nemotron response could not be parsed");
+      // Fallback: try to extract JSON if NVIDIA returns plain text
+      const start = content.indexOf("{");
+      const end = content.lastIndexOf("}");
+      if (start === -1 || end === -1) {
+        throw new AiError("invalid-output", "Nemotron response was not JSON");
+      }
+      try {
+        parsed = JSON.parse(content.slice(start, end + 1));
+      } catch {
+        throw new AiError("invalid-output", "Nemotron response could not be parsed");
+      }
     }
 
     const validated = copilotAnswerSchema.safeParse(parsed);

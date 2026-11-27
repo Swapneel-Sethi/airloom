@@ -14,23 +14,6 @@ export class AiError extends Error {
   }
 }
 
-interface GeminiContentPart {
-  text?: string;
-}
-
-interface GeminiContent {
-  parts?: Array<GeminiContentPart>;
-}
-
-interface GeminiCandidate {
-  content?: GeminiContent;
-}
-
-interface GeminiResponseData {
-  candidates?: Array<GeminiCandidate>;
-  promptFeedback?: { blockReason?: string };
-}
-
 export class GeminiProvider {
   readonly name = "gemini";
 
@@ -46,9 +29,40 @@ export class GeminiProvider {
     }
 
     const model = process.env.GEMINI_MODEL || DEFAULT_MODEL;
+    const startedAt = Date.now();
+
+    const systemInstruction = `You are the Airloom air quality copilot. Airloom turns air quality data into decisions for households in polluted cities.
+
+Rules:
+1. Use only the verified context supplied in the user message. Never invent a number, source, location, forecast, or health claim.
+2. Every number you cite must appear in the context. Do not calculate new AQI values or new emission values.
+3. Never diagnose, never say a person is safe or protected, and never promise a health outcome. Use "may reduce exposure", "consider", "lower exposure option", "based on current data".
+4. Prefer concrete times, modes, and actions from the context over general advice.
+5. If the context lacks something the question needs, say so plainly and offer the closest useful action.
+6. Answer in the language the user wrote in.
+7. Keep recommendation to 1 or 3 sentences. why and whatToDo hold 2 or 3 short items each. alternative is one realistic option.
+8. dataUsed lists the context fields you actually used, as short labels.
+9. safetyNote is null unless the question mentions symptoms, medication, pregnancy, a heart or lung condition, or a child's health. Then give one calm line that Airloom is not a medical service and a qualified professional should be consulted.
+10. Return JSON only, matching the response schema.
+11. Answer the user's actual question directly. Do not substitute a generic daily plan recommendation for a specific question about an activity, time, person, or comparison. When the user asks about a particular activity, person, time, or comparison, answer that request directly using the supplied context.
+
+Named facts available in context:
+- FACT: currentPm25 (current PM2.5 value)
+- FACT: currentAqi (current AQI value)
+- FACT: bestWindow (lowest PM2.5 window with label, pm25, aqi)
+- FACT: eveningWindow (evening window with label, pm25, aqi)
+- FACT: morningWindow (morning window with label, pm25, aqi)
+- FACT: afternoonWindow (afternoon window with label, pm25, aqi)
+- FACT: tonightWindow (tonight window with label, pm25, aqi)
+- FACT: requestedTimeWindow (if user asked about explicit time, contains pm25, aqi for that hour)
+- FACT: profile.sensitivity (household sensitivity threshold)
+`;
 
     const body = {
       model,
+      systemInstruction: {
+        parts: [{ text: systemInstruction }],
+      },
       contents: [
         {
           role: "user",
@@ -95,6 +109,7 @@ export class GeminiProvider {
 
     let response: Response;
     try {
+      // 6 second timeout for Gemini
       response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
         {
@@ -104,7 +119,7 @@ export class GeminiProvider {
             "x-goog-api-key": this.apiKey,
           },
           body: JSON.stringify(body),
-          signal: AbortSignal.timeout(22000),
+          signal: AbortSignal.timeout(6000),
           cache: "no-store",
         },
       );
@@ -120,7 +135,13 @@ export class GeminiProvider {
       throw new AiError("provider-error", `Gemini returned status ${response.status}`);
     }
 
-    const data = (await response.json()) as GeminiResponseData;
+    const data = (await response.json()) as {
+      candidates?: Array<{
+        content?: { parts?: Array<{ text?: string }> };
+        finishReason?: string;
+      }>;
+      promptFeedback?: { blockReason?: string };
+    };
 
     if (data.promptFeedback?.blockReason) {
       throw new AiError("blocked", "Gemini blocked the request");
@@ -134,17 +155,22 @@ export class GeminiProvider {
 
     if (!text) throw new AiError("invalid-output", "Gemini returned an empty response");
 
-    const start = text.indexOf("{");
-    const end = text.lastIndexOf("}");
-    if (start === -1 || end === -1) {
-      throw new AiError("invalid-output", "Gemini response was not JSON");
-    }
-
+    // With responseMimeType: application/json, text should be valid JSON
     let parsed: unknown;
     try {
-      parsed = JSON.parse(text.slice(start, end + 1));
+      parsed = JSON.parse(text);
     } catch {
-      throw new AiError("invalid-output", "Gemini response could not be parsed");
+      // Fallback: try to extract JSON
+      const start = text.indexOf("{");
+      const end = text.lastIndexOf("}");
+      if (start === -1 || end === -1) {
+        throw new AiError("invalid-output", "Gemini response was not JSON");
+      }
+      try {
+        parsed = JSON.parse(text.slice(start, end + 1));
+      } catch {
+        throw new AiError("invalid-output", "Gemini response could not be parsed");
+      }
     }
 
     const validated = copilotAnswerSchema.safeParse(parsed);
@@ -155,17 +181,85 @@ export class GeminiProvider {
       );
     }
 
+    // Grounding validation
+    const groundingResult = validateNumberGrounding(validated.data, JSON.stringify(context));
+    if (!groundingResult.valid) {
+      throw new AiError("invalid-output", groundingResult.errors.join(", "));
+    }
+
     return {
       answer: validated.data,
       meta: {
         provider: "gemini",
         model,
         fallbackReason: null,
-        promptVersion: "airloom-copilot-v1",
-        latencyMs: Date.now() - Date.now(),
+        promptVersion: PROMPT_VERSION,
+        latencyMs: Date.now() - startedAt,
       },
     };
   }
+}
+
+// Shared grounding validation function
+export function validateNumberGrounding(
+  answer: { recommendation: string; why: string[]; whatToDo: string[]; alternative: string; dataUsed: string[] },
+  contextJson: string
+): { valid: boolean; errors: string[] } {
+  const text = [
+    answer.recommendation,
+    ...answer.why,
+    ...answer.whatToDo,
+    answer.alternative,
+  ].join(" ");
+
+  // All numbers present in the context (as JSON values)
+  const contextNumbers = new Set<string>();
+  const contextStr = JSON.stringify(contextJson);
+  const contextNumMatches = contextStr.match(/-?\d+\.?\d*/g);
+  if (contextNumMatches) {
+    for (const m of contextNumMatches) {
+      contextNumbers.add(m);
+      const asNum = Number(m);
+      if (Number.isFinite(asNum)) {
+        contextNumbers.add(Math.round(asNum).toString());
+        contextNumbers.add(asNum.toFixed(1));
+      }
+    }
+  }
+
+  // Time values from context (HH:MM format)
+  const contextTimes = new Set<string>();
+  const timeMatches = contextStr.match(/\d{2}:\d{2}/g);
+  if (timeMatches) {
+    for (const m of timeMatches) {
+      contextTimes.add(m);
+    }
+  }
+
+  // Find all numbers in the answer text
+  const answerNumMatches = text.match(/-?\d+\.?\d*/g);
+  if (!answerNumMatches) return { valid: true, errors: [] };
+
+  const errors: string[] = [];
+  for (const match of answerNumMatches) {
+    const num = Number(match);
+    if (!Number.isFinite(num)) continue;
+
+    // Skip common neutral numbers
+    if (num === 0 || num === 1) continue;
+
+    // Skip percentage values
+    if (match.endsWith("%")) continue;
+
+    const isInContext = contextNumbers.has(match) || contextNumbers.has(num.toString());
+    const isTime = contextTimes.has(match);
+
+    if (!isInContext && !isTime) {
+      errors.push(`Number "${match}" not found in verified context`);
+    }
+  }
+
+  return { valid: errors.length === 0, errors };
 }
 
 export const PROMPT_VERSION = "airloom-copilot-v1";

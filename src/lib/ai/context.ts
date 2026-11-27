@@ -66,6 +66,8 @@ export interface CopilotContext {
     activityTime: string;
     sensitivity: string;
   };
+  // Optional: populated when user explicitly asks about a specific clock time
+  requestedTime?: { hour: number; minute: number; label: string } | null;
 }
 
 function householdLabel(tag: string): string {

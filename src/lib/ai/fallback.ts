@@ -1,6 +1,7 @@
 import type { CopilotAnswer } from "../types";
 import { formatNumber } from "../format";
 import type { CopilotContext } from "./context";
+import { parseExplicitTime, evaluateRequestedOutdoorTime } from "./time-parser";
 
 const SAFETY_TRIGGERS = [
   "symptom",
@@ -158,7 +159,82 @@ function outdoorActivityAnswer(context: CopilotContext, question: string): Copil
   const morning = context.morningWindow;
   const tonight = context.tonightWindow;
 
-  // Determine the time window from the question
+  // Check for explicit clock time (e.g., "6 pm", "18:00", "at 6")
+  const explicitTime = parseExplicitTime(question);
+  const mentionsChild = /\b(child|kid|son|daughter|baby|toddler|infant)\b/.test(normalized);
+  const sensitive = context.profile.sensitivity === "sensitive" || mentionsChild;
+  const threshold = sensitive ? 30 : 40;
+
+  const personPhrase = mentionsChild ? "your child" : "you";
+  const activityPhrase = normalized.includes("cycle") ? "cycling" :
+    normalized.includes("walk") ? "walking" :
+    normalized.includes("run") ? "running" :
+    normalized.includes("play") ? "playing outside" :
+    "outdoor activity";
+
+  // If user explicitly asked about a specific time, evaluate THAT time
+  if (explicitTime) {
+    const evaluation = evaluateRequestedOutdoorTime(
+      explicitTime.hour,
+      explicitTime.minute,
+      context
+    );
+
+    const requestedPm25 = evaluation.requestedPm25;
+    const requestedAqi = evaluation.requestedAqi;
+    const requestedTimeLabel = evaluation.requestedTimeLabel;
+
+    if (requestedPm25 === null) {
+      return {
+        recommendation: `Cannot verify PM2.5 for ${requestedTimeLabel}. Hold outdoor activity until a reading is available.`,
+        why: [
+          `No forecast data available for ${requestedTimeLabel}.`,
+          `The lowest verified window is ${best?.label ?? "unavailable"} at ${best ? formatNumber(best.pm25, 0) : "unknown"} µg/m³.`,
+        ],
+        whatToDo: [
+          "Refresh the air quality data.",
+          "Keep the session indoors for now.",
+        ],
+        alternative: best
+          ? `Consider ${activityPhrase} ${best.label} instead (PM2.5: ${formatNumber(best.pm25, 0)} µg/m³).`
+          : "Consider an indoor session instead.",
+        dataUsed: [...baseDataUsed(context), "Household sensitivity", "Hourly PM2.5 forecast"],
+        safetyNote: null,
+      };
+    }
+
+    const recommended = requestedPm25 < threshold;
+
+    return {
+      recommendation: recommended
+        ? `${personPhrase.charAt(0).toUpperCase() + personPhrase.slice(1)} can ${activityPhrase} at ${requestedTimeLabel}.`
+        : `Consider keeping ${personPhrase} indoors at ${requestedTimeLabel}.`,
+      why: [
+        `PM2.5 is ${formatNumber(requestedPm25, 0)} µg/m³ at ${requestedTimeLabel}, with AQI ${requestedAqi}.`,
+        `The planning threshold is ${threshold} µg/m³ for ${sensitive ? "a sensitive group" : "your household"}.`,
+        best && best.label !== evaluation.eveningWindow?.label
+          ? `The cleaner verified window is ${best.label} (PM2.5: ${formatNumber(best.pm25, 0)} µg/m³).`
+          : "",
+      ].filter(Boolean),
+      whatToDo: recommended
+        ? [
+            `Go ahead with ${activityPhrase} at ${requestedTimeLabel}, but keep an eye on changing conditions.`,
+            "Warm up indoors and skip the outdoor cooldown.",
+          ]
+        : [
+            `Consider shifting ${activityPhrase} to a cleaner window.`,
+            "Keep the session short if you do go out.",
+            best ? `The lowest PM2.5 window is ${best.label}.` : "",
+          ].filter(Boolean),
+      alternative: best && best.label !== evaluation.eveningWindow?.label
+        ? `Consider ${activityPhrase} ${best.label} instead (PM2.5: ${formatNumber(best.pm25, 0)} µg/m³).`
+        : "Consider an indoor session instead.",
+      dataUsed: [...baseDataUsed(context), "Household sensitivity", "Hourly PM2.5 forecast"],
+      safetyNote: null,
+    };
+  }
+
+  // Fall back to time window keywords (morning, afternoon, evening, tonight)
   let timeWindow: { label: string; pm25: number; aqi: number } | null = null;
   let timeLabel = "";
   if (normalized.includes("evening")) {
@@ -174,15 +250,9 @@ function outdoorActivityAnswer(context: CopilotContext, question: string): Copil
     timeWindow = afternoon;
     timeLabel = "afternoon";
   } else {
-    // Default to best window if no time specified
     timeWindow = best;
     timeLabel = best?.label ?? "lowest";
   }
-
-  // Determine if child/kid is mentioned
-  const mentionsChild = /\b(child|kid|son|daughter|baby|toddler|infant)\b/.test(normalized);
-  const sensitive = context.profile.sensitivity === "sensitive" || mentionsChild;
-  const threshold = sensitive ? 30 : 40;
 
   if (!timeWindow || timeWindow.pm25 === null) {
     return {
@@ -197,13 +267,6 @@ function outdoorActivityAnswer(context: CopilotContext, question: string): Copil
 
   const pm25Value = timeWindow.pm25;
   const recommended = pm25Value < threshold;
-
-  const personPhrase = mentionsChild ? "your child" : "you";
-  const activityPhrase = normalized.includes("cycle") ? "cycling" :
-    normalized.includes("walk") ? "walking" :
-    normalized.includes("run") ? "running" :
-    normalized.includes("play") ? "playing outside" :
-    "outdoor activity";
 
   return {
     recommendation: recommended
@@ -400,32 +463,55 @@ const INTENT_PATTERNS: Array<{
   { name: "swaps", pattern: /\b(swap|swaps|sustain|carbon|co2|emission|impact|change mode|reduce emission)\b/, handler: swapsAnswer },
 ];
 
-function matchIntent(normalized: string): {
+interface IntentMatch {
   intent: string | null;
   hasChild: boolean;
   hasActivity: boolean;
   hasTime: boolean;
-} {
+  hasExplicitTime: boolean;
+  requestedHour: number | null;
+  requestedMinute: number | null;
+}
+
+function matchIntent(normalized: string): IntentMatch {
   const hasChild = /\b(child|kid|kids|son|daughter|baby|toddler|infant)\b/.test(normalized);
   const hasActivity = /\b(run|jog|exercise|walk|walking|cycl|gym|cricket|sport|session|workout|play|playing|outside|outdoor)\b/.test(normalized);
   const hasTime = /\b(morning|afternoon|evening|tonight|night)\b/.test(normalized);
 
-  // Child + activity + time → outdoor activity (most specific, beats family)
-  if (hasChild && hasActivity && hasTime) {
-    return { intent: "outdoor-activity", hasChild, hasActivity, hasTime };
+  // Check for explicit clock time
+  const explicitTime = parseExplicitTime(normalized);
+  const hasExplicitTime = explicitTime !== null;
+
+  // Explicit time + activity → outdoor activity (highest priority)
+  if (hasExplicitTime && hasActivity) {
+    return {
+      intent: "outdoor-activity",
+      hasChild,
+      hasActivity,
+      hasTime: true,
+      hasExplicitTime: true,
+      requestedHour: explicitTime.hour,
+      requestedMinute: explicitTime.minute,
+    };
   }
+
+  // Child + activity + time → outdoor activity (beats family)
+  if (hasChild && hasActivity && hasTime) {
+    return { intent: "outdoor-activity", hasChild, hasActivity, hasTime, hasExplicitTime: false, requestedHour: null, requestedMinute: null };
+  }
+
   // Activity + time (no child) → outdoor activity
   if (hasActivity && hasTime) {
-    return { intent: "outdoor-activity", hasChild, hasActivity, hasTime };
+    return { intent: "outdoor-activity", hasChild, hasActivity, hasTime, hasExplicitTime: false, requestedHour: null, requestedMinute: null };
   }
 
   // Check patterns in order for everything else
   for (const intent of INTENT_PATTERNS) {
     if (intent.pattern.test(normalized)) {
-      return { intent: intent.name, hasChild, hasActivity, hasTime };
+      return { intent: intent.name, hasChild, hasActivity, hasTime, hasExplicitTime: false, requestedHour: null, requestedMinute: null };
     }
   }
-  return { intent: null, hasChild, hasActivity, hasTime };
+  return { intent: null, hasChild, hasActivity, hasTime, hasExplicitTime: false, requestedHour: null, requestedMinute: null };
 }
 
 export function deterministicAnswer(
