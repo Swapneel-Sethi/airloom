@@ -65,9 +65,9 @@ export class ProviderRegistry {
     }
 
     // Try each provider in priority order
-    for (const { provider } of this.providers) {
+    for (const { provider, name } of this.providers) {
       try {
-        console.log(`Provider ${provider.name}: apiKey set = ${provider.isAvailable()}`);
+        console.log(`Provider ${name}: isAvailable = ${provider.isAvailable()}`);
         const result = await provider.generate(question, context);
 
         // Validate the result
@@ -88,8 +88,8 @@ export class ProviderRegistry {
       } catch (error) {
         // Provider failed completely - try next provider
         const errorMsg = error instanceof Error ? error.message : String(error);
-        console.warn(`Provider ${provider.name} failed: ${errorMsg}`);
-        console.warn(`Provider ${provider.name} isAvailable: ${provider.isAvailable()}`);
+        console.warn(`Provider ${name} failed: ${errorMsg}`);
+        console.warn(`Provider ${name} isAvailable: ${provider.isAvailable()}`);
         continue;
       }
     }
