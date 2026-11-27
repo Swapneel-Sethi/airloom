@@ -150,6 +150,86 @@ function activityAnswer(context: CopilotContext): CopilotAnswer {
   };
 }
 
+function outdoorActivityAnswer(context: CopilotContext, question: string): CopilotAnswer {
+  const normalized = question.toLowerCase();
+  const best = context.bestWindow;
+  const evening = context.eveningWindow;
+  const afternoon = context.afternoonWindow;
+  const morning = context.morningWindow;
+  const tonight = context.tonightWindow;
+
+  // Determine the time window from the question
+  let timeWindow: { label: string; pm25: number; aqi: number } | null = null;
+  let timeLabel = "";
+  if (normalized.includes("evening")) {
+    timeWindow = evening;
+    timeLabel = "evening";
+  } else if (normalized.includes("tonight")) {
+    timeWindow = tonight;
+    timeLabel = "tonight";
+  } else if (normalized.includes("morning")) {
+    timeWindow = morning;
+    timeLabel = "morning";
+  } else if (normalized.includes("afternoon")) {
+    timeWindow = afternoon;
+    timeLabel = "afternoon";
+  } else {
+    // Default to best window if no time specified
+    timeWindow = best;
+    timeLabel = best?.label ?? "lowest";
+  }
+
+  // Determine if child/kid is mentioned
+  const mentionsChild = /\b(child|kid|son|daughter|baby|toddler|infant)\b/.test(normalized);
+  const sensitive = context.profile.sensitivity === "sensitive" || mentionsChild;
+  const threshold = sensitive ? 30 : 40;
+
+  if (!timeWindow || timeWindow.pm25 === null) {
+    return {
+      recommendation: "Hold outdoor activity until a PM2.5 reading is available.",
+      why: ["The provider did not return a usable PM2.5 value for this location."],
+      whatToDo: ["Refresh the reading.", "Keep the session indoors for now."],
+      alternative: "An indoor session at home with the room closed.",
+      dataUsed: ["Location", "Provider status"],
+      safetyNote: null,
+    };
+  }
+
+  const pm25Value = timeWindow.pm25;
+  const recommended = pm25Value < threshold;
+
+  const personPhrase = mentionsChild ? "your child" : "you";
+  const activityPhrase = normalized.includes("cycle") ? "cycling" :
+    normalized.includes("walk") ? "walking" :
+    normalized.includes("run") ? "running" :
+    normalized.includes("play") ? "playing outside" :
+    "outdoor activity";
+
+  return {
+    recommendation: recommended
+      ? `${personPhrase.charAt(0).toUpperCase() + personPhrase.slice(1)} can ${activityPhrase} ${timeLabel}.`
+      : `Consider keeping ${personPhrase} indoors ${timeLabel}.`,
+    why: [
+      `PM2.5 is ${formatNumber(pm25Value, 0)} µg/m³ ${timeLabel}, with AQI ${timeWindow.aqi}.`,
+      `The planning threshold is ${threshold} µg/m³ for ${sensitive ? "a sensitive group" : "your household"}.`,
+    ],
+    whatToDo: recommended
+      ? [
+          `Go ahead with ${activityPhrase} ${timeLabel}, but keep an eye on changing conditions.`,
+          "Warm up indoors and skip the outdoor cooldown.",
+        ]
+      : [
+          `Consider shifting ${activityPhrase} to a cleaner window.`,
+          "Keep the session short if you do go out.",
+        ],
+    alternative: best && best.label !== timeWindow.label
+      ? `Consider ${activityPhrase} ${best.label} instead (PM2.5: ${formatNumber(best.pm25, 0)} µg/m³).`
+      : "Consider an indoor session instead.",
+    dataUsed: [...baseDataUsed(context), "Household sensitivity", "Hourly PM2.5 forecast"],
+    safetyNote: null,
+  };
+}
+
 function ventilationAnswer(context: CopilotContext): CopilotAnswer {
   const indoor = context.indoor;
   const outdoor = indoor.outdoorPm25;
@@ -316,15 +396,36 @@ const INTENT_PATTERNS: Array<{
   { name: "indoor-windows", pattern: /\b(window|ventilate|open|fresh air|air out)\b/, handler: ventilationAnswer },
   { name: "commute", pattern: /\b(commute|travel|leave|office|work|bus|metro|train|cab|scooter|trip|ride|drive|transport|cycle|compare)\b/, handler: commuteAnswer },
   { name: "family", pattern: /\b(family|child|kid|school|parent|mother|baby|infant|toddler|older adult|elderly|grandparent)\b/, handler: familyAnswer },
-  { name: "activity", pattern: /\b(run|jog|exercise|walk|walking|cycl|gym|cricket|sport|session|workout)\b/, handler: activityAnswer },
+  { name: "activity", pattern: /\b(run|jog|exercise|walk|walking|cycle|cycling|gym|cricket|sport|session|workout|play|playing|outside|outdoor)\b/, handler: activityAnswer },
   { name: "swaps", pattern: /\b(swap|swaps|sustain|carbon|co2|emission|impact|change mode|reduce emission)\b/, handler: swapsAnswer },
 ];
 
-function matchIntent(normalized: string): ((context: CopilotContext) => CopilotAnswer) | null {
-  for (const intent of INTENT_PATTERNS) {
-    if (intent.pattern.test(normalized)) return intent.handler;
+function matchIntent(normalized: string): {
+  intent: string | null;
+  hasChild: boolean;
+  hasActivity: boolean;
+  hasTime: boolean;
+} {
+  const hasChild = /\b(child|kid|kids|son|daughter|baby|toddler|infant)\b/.test(normalized);
+  const hasActivity = /\b(run|jog|exercise|walk|walking|cycl|gym|cricket|sport|session|workout|play|playing|outside|outdoor)\b/.test(normalized);
+  const hasTime = /\b(morning|afternoon|evening|tonight|night)\b/.test(normalized);
+
+  // Child + activity + time → outdoor activity (most specific, beats family)
+  if (hasChild && hasActivity && hasTime) {
+    return { intent: "outdoor-activity", hasChild, hasActivity, hasTime };
   }
-  return null;
+  // Activity + time (no child) → outdoor activity
+  if (hasActivity && hasTime) {
+    return { intent: "outdoor-activity", hasChild, hasActivity, hasTime };
+  }
+
+  // Check patterns in order for everything else
+  for (const intent of INTENT_PATTERNS) {
+    if (intent.pattern.test(normalized)) {
+      return { intent: intent.name, hasChild, hasActivity, hasTime };
+    }
+  }
+  return { intent: null, hasChild, hasActivity, hasTime };
 }
 
 export function deterministicAnswer(
@@ -337,38 +438,50 @@ export function deterministicAnswer(
     return acuteHealthAnswer();
   }
 
-  const handler = matchIntent(normalized);
+  const intent = matchIntent(normalized);
   let answer: CopilotAnswer;
-  if (handler) {
-    answer = handler(context);
+
+  if (intent.intent === "outdoor-activity") {
+    answer = outdoorActivityAnswer(context, question);
+  } else if (intent.intent) {
+    const handler = INTENT_PATTERNS.find((p) => p.name === intent.intent)?.handler;
+    if (handler) {
+      answer = handler(context);
+    } else {
+      answer = genericAnswer(context);
+    }
   } else {
-    const value = pm25(context);
-    const top = context.plan[0];
-    answer = {
-      recommendation:
-        top?.action ??
-        `Keep outdoor time inside the ${context.bestWindow?.label ?? "lowest"} window.`,
-      why: [
-        `AQI is ${context.aqi?.value ?? "unavailable"} (${context.aqi?.category ?? "unavailable"}), driven by ${context.aqi?.dominant ?? "PM2.5"}.`,
-        `PM2.5 is ${formatNumber(value ?? 0, 0)} µg/m³.`,
-        context.bestWindow
-          ? `The lowest two hour window is ${context.bestWindow.label} at ${formatNumber(context.bestWindow.pm25, 0)} µg/m³.`
-          : "No forecast window is available for today.",
-      ],
-      whatToDo: [
-        top?.action ?? "Keep windows closed through the peak.",
-        context.indoor.ventilationWindow
-          ? `Ventilate between ${context.indoor.ventilationWindow}.`
-          : "Keep windows closed and filter the occupied room.",
-        "Check the Today tab for the full block by block plan.",
-      ],
-      alternative: context.bestWindow
-        ? `Shift outdoor errands into ${context.bestWindow.label}.`
-        : "Keep errands indoors where possible.",
-      dataUsed: baseDataUsed(context),
-      safetyNote: null,
-    };
+    answer = genericAnswer(context);
   }
 
   return { ...answer, safetyNote: safetyNote(question) };
+}
+
+function genericAnswer(context: CopilotContext): CopilotAnswer {
+  const value = pm25(context);
+  const top = context.plan[0];
+  return {
+    recommendation:
+      top?.action ??
+      `Keep outdoor time inside the ${context.bestWindow?.label ?? "lowest"} window.`,
+    why: [
+      `AQI is ${context.aqi?.value ?? "unavailable"} (${context.aqi?.category ?? "unavailable"}), driven by ${context.aqi?.dominant ?? "PM2.5"}.`,
+      `PM2.5 is ${formatNumber(value ?? 0, 0)} µg/m³.`,
+      context.bestWindow
+        ? `The lowest two hour window is ${context.bestWindow.label} at ${formatNumber(context.bestWindow.pm25, 0)} µg/m³.`
+        : "No forecast window is available for today.",
+    ],
+    whatToDo: [
+      top?.action ?? "Keep windows closed through the peak.",
+      context.indoor.ventilationWindow
+        ? `Ventilate between ${context.indoor.ventilationWindow}.`
+        : "Keep windows closed and filter the occupied room.",
+      "Check the Today tab for the full block by block plan.",
+    ],
+    alternative: context.bestWindow
+      ? `Shift outdoor errands into ${context.bestWindow.label}.`
+      : "Keep errands indoors where possible.",
+    dataUsed: baseDataUsed(context),
+    safetyNote: null,
+  };
 }

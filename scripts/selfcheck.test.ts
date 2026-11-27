@@ -822,7 +822,7 @@ test("fallback intent routing: safety, off-topic, purifier, windows, commute, ac
     ["My child has asthma.", "family"],
     ["My 70 year old mother wants to walk.", "family"],
     ["Write me a poem.", "generic"],
-    ["Should I go for a run this morning?", "activity"],
+    ["Should I go for a run this morning?", "outdoor-activity"],
     ["When should I leave for work?", "commute"],
     ["What can my family do indoors tonight?", "family"],
     ["Is the air safe for my baby?", "family"],
@@ -864,7 +864,95 @@ test("fallback intent routing: safety, off-topic, purifier, windows, commute, ac
   assert.equal(matched, cases.length);
 });
 
+test("outdoor activity intent routing: child + activity + time", () => {
+  const cases: Array<[string, string]> = [
+    ["can me and my kid go outside and play in the evening?", "outdoor-activity"],
+    ["Can my child play outside tonight?", "outdoor-activity"],
+    ["Should I go for a run this evening?", "outdoor-activity"],
+    ["Can the kids go cycling this evening?", "outdoor-activity"],
+    ["Is it better to play outside this evening or tomorrow morning?", "outdoor-activity"],
+  ];
+
+  let matched = 0;
+  for (const [question, expectedIntent] of cases) {
+    const normalized = question.toLowerCase();
+    const intent = matchIntentForTest(normalized);
+    assert.ok(intent !== null, `${question} should match an intent`);
+    assert.equal(intent.name, expectedIntent, `${question} expected ${expectedIntent}`);
+    matched += 1;
+  }
+  assert.equal(matched, cases.length);
+});
+
+test("outdoor activity intent: activity without child", () => {
+  const cases: Array<[string, string]> = [
+    ["Should I go for a run?", "activity"],
+    ["Should I exercise today?", "activity"],
+  ];
+
+  for (const [question, expectedIntent] of cases) {
+    const normalized = question.toLowerCase();
+    const intent = matchIntentForTest(normalized);
+    assert.ok(intent !== null, `${question} should match an intent`);
+    assert.equal(intent.name, expectedIntent, `${question} expected ${expectedIntent}`);
+  }
+});
+
+test("outdoor activity intent: activity + time without child", () => {
+  const cases: Array<[string, string]> = [
+    ["Should I go for a run this evening?", "outdoor-activity"],
+  ];
+
+  for (const [question, expectedIntent] of cases) {
+    const normalized = question.toLowerCase();
+    const intent = matchIntentForTest(normalized);
+    assert.ok(intent !== null, `${question} should match an intent`);
+    assert.equal(intent.name, expectedIntent, `${question} expected ${expectedIntent}`);
+  }
+});
+
+test("family intent: child without activity + time", () => {
+  const cases: Array<[string, string]> = [
+    ["What can my family do indoors tonight?", "family"],
+    ["What should my family do today?", "family"],
+  ];
+
+  for (const [question, expectedIntent] of cases) {
+    const normalized = question.toLowerCase();
+    const intent = matchIntentForTest(normalized);
+    assert.ok(intent !== null, `${question} should match an intent`);
+    assert.equal(intent.name, expectedIntent, `${question} expected ${expectedIntent}`);
+  }
+});
+
+test("indoor-windows intent: windows at night", () => {
+  const cases: Array<[string, string]> = [
+    ["Should I open my windows tonight?", "indoor-windows"],
+  ];
+
+  for (const [question, expectedIntent] of cases) {
+    const normalized = question.toLowerCase();
+    const intent = matchIntentForTest(normalized);
+    assert.ok(intent !== null, `${question} should match an intent`);
+    assert.equal(intent.name, expectedIntent, `${question} expected ${expectedIntent}`);
+  }
+});
+
 function matchIntentForTest(normalized: string): { name: string } | null {
+  const words = normalized.split(/\s+/);
+  const hasChild = words.includes("child") || words.includes("kid") || words.includes("kids") || words.includes("son") || words.includes("daughter") || words.includes("baby") || words.includes("toddler") || words.includes("infant");
+  const hasActivity = /\b(run|jog|exercise|walk|walking|cycle|cycling|gym|cricket|sport|session|workout|play|playing|outside|outdoor)\b/.test(normalized);
+  const hasTime = /\b(morning|afternoon|evening|tonight|night)\b/.test(normalized);
+
+  // Child + activity + time → outdoor activity (most specific, beats family)
+  if (hasChild && hasActivity && hasTime) {
+    return { name: "outdoor-activity" };
+  }
+  // Activity + time (no child) → outdoor activity
+  if (hasActivity && hasTime) {
+    return { name: "outdoor-activity" };
+  }
+
   const patterns: Array<{ name: string; pattern: RegExp }> = [
     { name: "purifier", pattern: /\b(purifier|filter|air cleaner|hepa)\b/ },
     { name: "indoor-windows", pattern: /\b(window|ventilate|open|fresh air|air out)\b/ },

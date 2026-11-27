@@ -26,7 +26,8 @@ Rules:
 7. Keep recommendation to 1 or 3 sentences. why and whatToDo hold 2 or 3 short items each. alternative is one realistic option.
 8. dataUsed lists the context fields you actually used, as short labels.
 9. safetyNote is null unless the question mentions symptoms, medication, pregnancy, a heart or lung condition, or a child's health. Then give one calm line that Airloom is not a medical service and a qualified professional should be consulted.
-10. Return JSON only, matching the response schema.`;
+10. Return JSON only, matching the response schema.
+11. Answer the user's actual question directly. Do not substitute a generic daily plan recommendation for a specific question about an activity, time, person, or comparison. When the user asks about a particular activity, person, time, or comparison, answer that request directly using the supplied context.`;
 
 interface GeminiResponse {
   candidates?: Array<{

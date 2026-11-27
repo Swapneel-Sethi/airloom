@@ -2,6 +2,7 @@ import type {
   CommuteComparison,
   DailyPlan,
   Environment,
+  HourPoint,
   IndoorOutlook,
   UserProfile,
 } from "../types";
@@ -24,6 +25,10 @@ export interface CopilotContext {
   dayAverages: { averageAqi: number; peakAqi: number; peakHour: string } | null;
   bestWindow: { label: string; pm25: number; aqi: number } | null;
   worstWindow: { label: string; pm25: number; aqi: number } | null;
+  morningWindow: { label: string; pm25: number; aqi: number } | null;
+  afternoonWindow: { label: string; pm25: number; aqi: number } | null;
+  eveningWindow: { label: string; pm25: number; aqi: number } | null;
+  tonightWindow: { label: string; pm25: number; aqi: number } | null;
   exposure: { plannedProxy: number | null; currentRoutineProxy: number | null };
   plan: Array<{
     block: string;
@@ -71,6 +76,39 @@ function transportLabel(mode: string): string {
   return TRANSPORT_OPTIONS.find((option) => option.value === mode)?.label ?? mode;
 }
 
+/**
+ * Compute the average PM2.5/AQI over a named time window on a given date.
+ * Returns null if no valid hourly points exist in the window.
+ */
+function windowAverage(
+  hourly: HourPoint[],
+  date: string,
+  fromHour: number,
+  toHour: number,
+): { label: string; pm25: number; aqi: number } | null {
+  const points = hourly.filter(
+    (point) =>
+      point.time.slice(0, 10) === date &&
+      point.hour >= fromHour &&
+      point.hour < toHour &&
+      point.pm25 !== null &&
+      point.aqi !== null,
+  );
+  if (points.length === 0) return null;
+  const avgPm25 =
+    points.reduce((sum, p) => sum + (p.pm25 ?? 0), 0) / points.length;
+  const avgAqi =
+    points.reduce((sum, p) => sum + (p.aqi ?? 0), 0) / points.length;
+  return {
+    label: `${String(fromHour).padStart(2, "0")}:00 to ${String(toHour).padStart(2, "0")}:00`,
+    pm25: Math.round(avgPm25 * 10) / 10,
+    aqi: Math.round(avgAqi),
+  };
+}
+
+/**
+ * Compute the best (lowest PM2.5) 2-hour window within a named time range.
+ */
 export function buildCopilotContext(
   environment: Environment,
   profile: UserProfile,
@@ -78,6 +116,7 @@ export function buildCopilotContext(
   indoor: IndoorOutlook,
   commute: CommuteComparison,
 ): CopilotContext {
+  const date = environment.currentTime.slice(0, 10);
   return {
     location: environment.location.name,
     localTime: `${environment.currentTime.slice(0, 10)} ${environment.currentTime.slice(11, 16)} local`,
@@ -133,6 +172,10 @@ export function buildCopilotContext(
           aqi: plan.worstWindow.avgAqi,
         }
       : null,
+    morningWindow: windowAverage(environment.hourly, date, 6, 11),
+    afternoonWindow: windowAverage(environment.hourly, date, 12, 17),
+    eveningWindow: windowAverage(environment.hourly, date, 17, 22),
+    tonightWindow: windowAverage(environment.hourly, date, 20, 23),
     exposure: {
       plannedProxy: plan.outdoorExposureProxy,
       currentRoutineProxy: plan.baselineExposureProxy,
