@@ -12,7 +12,7 @@ import type {
   UserProfile,
 } from "../types";
 import { buildCopilotContext, type CopilotContext } from "./context";
-import { ProviderRegistry } from "./providers/registry";
+import { ProfileRegistry } from "./providers/registry";
 
 export interface CopilotResult {
   answer: CopilotAnswer;
@@ -46,7 +46,7 @@ export async function runCopilot(
 
   const startedAt = Date.now();
 
-  const registry = new ProviderRegistry();
+  const registry = new ProfileRegistry();
   const result = await registry.generate({
     question,
     context,

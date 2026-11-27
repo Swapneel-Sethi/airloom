@@ -20,8 +20,8 @@ export interface ProviderPipelineResult {
   validated: boolean;
 }
 
-export interface ProfileRecord {
-  id: string;
+type ProviderEntry = {
+  name: string;
   provider: {
     generate: (question: string, context: CopilotContext) => Promise<{
       answer: CopilotAnswer;
@@ -29,7 +29,7 @@ export interface ProfileRecord {
     }>;
     isAvailable: () => boolean;
   };
-}
+};
 
 export class ProfileRegistry {
   private profiles: ProviderEntry[] = [];
@@ -50,7 +50,7 @@ export class ProfileRegistry {
   }
 
   async generate(options: ProviderPipelineOptions): Promise<ProviderPipelineResult> {
-    const { query, context } = options;
+    const { question, context } = options;
 
     if (isAcuteHealthScenario(question)) {
       return {
