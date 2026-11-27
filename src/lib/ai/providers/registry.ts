@@ -66,9 +66,8 @@ export class ProviderRegistry {
 
     // Try each provider in priority order
     for (const { provider, name } of this.providers) {
+      console.log(`Provider ${name}: apiKey = ${provider.isAvailable()}, env NVIDIA_API_KEY = ${process.env.NVIDIA_API_KEY ? process.env.NVIDIA_API_KEY.substring(0, 10) + '...' : 'NOT_SET'}`);
       try {
-        console.log(`Provider ${name}: isAvailable = ${provider.isAvailable()}, apiKey present = ${!!process.env.NVIDIA_API_KEY}, keyLen = ${process.env.NVIDIA_API_KEY?.length ?? 0}`);
-        const result = await provider.generate(question, context);
 
         // Validate the result
         const validation = await this.validateResult(result.answer, context);
