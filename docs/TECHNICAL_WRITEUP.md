@@ -15,7 +15,7 @@ Next.js 16 App Router, React 19, TypeScript, Tailwind CSS 4, Zod, lucide-react. 
 - `src/lib/plan.ts` - deterministic personalized six-block daily plan engine (core differentiator).
 - `src/lib/indoor.ts`, `commute.ts`, `exposure.ts`, `swaps.ts` - domain engines.
 - `src/lib/demo.ts` - seeded demo environments for five cities; never mixed with live data.
-- `src/lib/ai/` - isolated AI layer: `context.ts` (grounding context), `schema.ts` (Zod), `gemini.ts` (provider), `fallback.ts` (deterministic rules), `copilot.ts` (orchestrator with fallback).
+- `src/lib/ai/` - isolated AI layer: `context.ts` (grounding context), `schema.ts` (Zod), `providers/gemini.ts`, `providers/nemotron.ts`, `providers/deterministic.ts` (providers), `providers/registry.ts` (Nemotron → Gemini → deterministic pipeline), `fallback.ts` (deterministic rules), `copilot.ts` (orchestrator).
 - `src/components/` - UI primitives, charts, dashboard shell, location dialog, shared blocks.
 - `src/app/` - App Router pages, API routes, metadata, robots, sitemap, opengraph image.
 
@@ -46,7 +46,7 @@ Simple mass-balance style estimate: indoor PM2.5 = outdoor PM2.5 × infiltration
 
 ## AI
 
-Gemini 2.5 Flash via REST, isolated in `src/lib/ai/`, temperature 0.35, response schema enforced by Zod, `thinkingBudget: 0`, 22s timeout. System instruction forbids inventing numbers, diagnoses, or health promises; every number must appear in the verified context. On missing key, timeout, invalid output, or provider error, the deterministic rule engine answers with the same schema. Safety triggers (symptom, chest, breath, asthma, medic, inhaler, doctor, hospital, pregnan, heart, cough) append a calm non-medical boundary line.
+Provider pipeline: Nemotron (NVIDIA Nemotron 3.5 Super VL 120B, 9s timeout) → Gemini 2.5 Flash (6s timeout) → deterministic rules → minimal safe fallback. Both models use JSON schema enforcement (Zod + provider-native schema), temperature 0.35, 1100 output tokens. Isolated in `src/lib/ai/providers/`. System instruction forbids inventing numbers, diagnoses, or health promises; every number must appear in the verified context. On missing keys, timeout, invalid output, or provider error, the deterministic rule engine answers with the same schema. Safety triggers (symptom, chest, breath, asthma, medic, inhaler, doctor, hospital, pregnan, heart, cough) are intercepted before any model call and handled by deterministic rules (`fallbackReason: safety-gate`). If all providers fail validation, deterministic answer is validated; if it fails, a minimal safe answer is returned (`fallbackReason: all-providers-failed`).
 
 ## Rate limiting and errors
 
@@ -58,4 +58,4 @@ Semantic headings, landmarks, `role="img"` chart summaries, focus-visible rings,
 
 ## Build and deploy
 
-`next build` succeeds with zero TypeScript errors and zero lint errors. Deployed on Vercel production, linked to GitHub. `GEMINI_API_KEY` set as a Vercel environment variable; never committed.
+`next build` succeeds with zero TypeScript errors and zero lint errors. Deployed on Vercel production, linked to GitHub. `NVIDIA_API_KEY` and `GEMINI_API_KEY` set as Vercel environment variables; never committed.

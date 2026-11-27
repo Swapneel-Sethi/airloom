@@ -40,10 +40,10 @@ Demo data is never presented as live data.
 
 ## Proof
 
-- **13/13 self-checks pass** (`npm test`): AQI breakpoints, category boundaries, exposure math, deterministic plans, sensitive-household thresholds, commute ordering, indoor estimates, swap output and copilot schema rejection.
+- **62/62 self-checks pass** (`npm test`): AQI breakpoints, category boundaries, exposure math, deterministic plans, sensitive-household thresholds, commute ordering, indoor estimates, swap output and copilot schema rejection.
 - **Deterministic core.** Identical inputs produce identical plans and recommendations.
 - **Production is live.** The deployed app returns HTTP 200.
-- **Fail-safe assistant.** If Gemini is unavailable, returns invalid output, times out or is not configured, the deterministic rule engine answers instead.
+- **Fail-safe assistant.** If Nemotron and Gemini are unavailable, return invalid output, time out or are not configured, the deterministic rule engine answers instead.
 - **Safety boundary.** The assistant does not diagnose medical conditions, and symptomatic questions do not receive outdoor exposure recommendations.
 
 ## How it works
@@ -52,7 +52,7 @@ Demo data is never presented as live data.
 Open-Meteo hourly data
   → AQI + exposure calculations
   → six-block plan
-  → optional Gemini explanation
+  → optional model explanation (Nemotron → Gemini)
   → provenance-labelled UI
 ```
 
@@ -66,7 +66,7 @@ The AI copilot receives the same context shown in the product, is validated with
 - Tailwind CSS 4
 - Zod
 - Open-Meteo air quality, weather and geocoding APIs
-- Gemini 2.5 Flash, server-side only
+- Nemotron and Gemini 2.5 Flash, server-side only (optional keys)
 - Hand-rolled SVG charts (no charting library)
 - Vercel
 
@@ -93,7 +93,7 @@ npm run typecheck
 npm test
 ```
 
-`GEMINI_API_KEY` is optional. Without it, the product runs on deterministic rules.
+`NVIDIA_API_KEY` and `GEMINI_API_KEY` are optional. Without them, the product runs on deterministic rules.
 
 ## Limitations
 
@@ -106,7 +106,7 @@ npm test
 
 ## Data and security
 
-User profile settings stay in browser local storage. The Gemini key remains server-side. Production responses include `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `X-Frame-Options: DENY` and a scoped `Permissions-Policy`. See [`docs/DATA_METHODOLOGY.md`](docs/DATA_METHODOLOGY.md) and [`docs/TESTING.md`](docs/TESTING.md).
+User profile settings stay in browser local storage. Provider keys remain server-side. Production responses include `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `X-Frame-Options: DENY` and a scoped `Permissions-Policy`. See [`docs/DATA_METHODOLOGY.md`](docs/DATA_METHODOLOGY.md) and [`docs/TESTING.md`](docs/TESTING.md).
 
 ## Context
 

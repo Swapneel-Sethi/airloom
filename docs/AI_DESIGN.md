@@ -2,9 +2,18 @@
 
 Airloom's copilot is a grounded, schema-validated assistant with a deterministic fallback.
 
-## Provider
+## Provider Pipeline
 
-Gemini 2.5 Flash via the Google Generative Language REST API (`generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`). Configured through `src/lib/ai/gemini.ts`, isolated from the rest of the codebase. Temperature 0.35, `maxOutputTokens 1100`, `responseMimeType: application/json`, `responseSchema` enforced, `thinkingBudget: 0`, 22-second timeout, `cache: no-store`.
+The assistant tries providers in order:
+
+1. **Nemotron** (NVIDIA Nemotron 3.5 Super VL 120B) via `src/lib/ai/providers/nemotron.ts` — NVIDIA Open API (`https://integrate.api.nvidia.com/v1/chat/completions`), JSON schema enforced, temperature 0.35, `max_tokens: 1100`, 9-second timeout.
+2. **Gemini 2.5 Flash** via `src/lib/ai/providers/gemini.ts` — Google Generative Language REST API (`generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`), responseSchema enforced, temperature 0.35, `maxOutputTokens: 1100`, `thinkingBudget: 0`, 6-second timeout.
+3. **Deterministic rules** via `src/lib/ai/providers/deterministic.ts` — keyword-routed answers for activity, ventilation, commute, indoor, family, swaps, and a general case. Same `CopilotAnswer` shape as model outputs. Answers cite real computed values and never invent data.
+4. **Minimal safe fallback** — if all providers fail validation, a verified safe answer is constructed from the best available window.
+
+Fallback reasons (`meta.fallbackReason`): `safety-gate` (acute health question intercepted before any model call), `all-providers-failed` (Nemotron and Gemini both failed or unavailable).
+
+Provider metadata (`meta.provider`): `"nemotron"` | `"gemini"` | `"rules"`. `meta.model` is currently `null` for all providers.
 
 ## System instruction
 
@@ -30,19 +39,23 @@ Model output is parsed (first `{` to last `}`), then validated against `copilotA
 
 ## Fallback
 
-`src/lib/ai/fallback.ts` implements `deterministicAnswer`: keyword-routed answers for activity, ventilation, commute, indoor, family, swaps, and a general case. Same `CopilotAnswer` shape as Gemini output. Answers cite real computed values (PM2.5, windows, sensitivity threshold, exposure proxy) and never invent data. Safety-trigger detection appends the non-medical boundary line.
+`src/lib/ai/fallback.ts` implements `deterministicAnswer`: keyword-routed answers for activity, ventilation, commute, indoor, family, swaps, and a general case. Same `CopilotAnswer` shape as model outputs. Answers cite real computed values (PM2.5, windows, sensitivity threshold, exposure proxy) and never invent data. Safety-trigger detection appends the non-medical boundary line.
+
+The orchestrator (`src/lib/ai/providers/registry.ts`) runs the pipeline: Nemotron → Gemini → deterministic rules → minimal safe fallback. Each provider output is validated (Zod schema + grounding check + contradiction check). On validation failure or error, the next provider is tried. If all providers fail, the deterministic answer is generated and validated; if it also fails validation, a minimal safe answer is returned.
+
+`meta.fallbackReason` values: `safety-gate` (acute health question handled by deterministic rules before any model call), `all-providers-failed` (Nemotron and Gemini both failed validation or were unavailable).
 
 ## Orchestration
 
-`src/lib/ai/copilot.ts` `runCopilot`: load environment (demo if no key/location), build plan/indoor/commute/context, try Gemini, on any error return deterministic answer with `meta.fallbackReason` set. Meta records provider, model, fallbackReason, promptVersion (`airloom-copilot-v1`), latencyMs.
+`src/lib/ai/copilot.ts` `runCopilot`: load environment (demo if no key/location), build plan/indoor/commute/context, invoke `ProviderRegistry.generate` which runs the Nemotron → Gemini → deterministic pipeline, returns validated answer with `meta.provider` (`"nemotron"` | `"gemini"` | `"rules"`), `meta.fallbackReason` (as above), `meta.promptVersion` (`airloom-copilot-v1`), `meta.latencyMs`.
 
 ## API
 
 `POST /api/copilot` with `{ question, profile }` (Zod validated, question 2-600 chars). IP in-memory rate limit: 12 requests/minute. Returns answer, meta, and grounding (location, source, freshnessMinutes, AQI, PM2.5, best/worst window, dataSource). Environment failures return 502; rate limit returns 429; validation errors return 400. No raw errors leak.
 
-## When no key is configured
+## When no keys are configured
 
-The assistant answers entirely with the rule engine; `meta.provider` is `rules` and `fallbackReason` is `no-key`. The app is fully functional without Gemini.
+If neither `NVIDIA_API_KEY` nor `GEMINI_API_KEY` is set, the assistant answers entirely with the rule engine; `meta.provider` is `rules` and `fallbackReason` is `all-providers-failed`. The app is fully functional without model keys.
 
 ## Boundaries
 

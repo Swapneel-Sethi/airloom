@@ -73,7 +73,7 @@ export default function ProfilesPage() {
         ) : null}
       </header>
 
-      <main className="shell max-w-3xl pb-20 pt-10">
+      <main id="main-content" className="shell max-w-3xl pb-20 pt-10">
         <SectionLabel tone="dark">Local profiles</SectionLabel>
         <h1 className="mt-3 text-2xl tracking-[-0.02em] sm:text-3xl">Who is using Airloom?</h1>
         <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-dark">

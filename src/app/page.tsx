@@ -104,7 +104,7 @@ export default function LandingPage() {
         </div>
       </header>
 
-      <main>
+      <main id="main-content">
         <section className="shell grid gap-12 pb-16 pt-12 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-16 lg:pb-24 lg:pt-20">
           <div className="rise">
             <div className="flex flex-wrap items-center gap-3">

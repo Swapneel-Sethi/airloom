@@ -141,7 +141,7 @@ export default function OnboardingPage() {
         </button>
       </header>
 
-      <main className="shell max-w-2xl pb-20 pt-8">
+      <main id="main-content" className="shell max-w-2xl pb-20 pt-8">
         <div className="flex items-center gap-3">
           {STEPS.map((label, index) => (
             <div key={label} className="flex-1">

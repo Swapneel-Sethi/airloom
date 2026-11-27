@@ -9,7 +9,7 @@
 
 ## Unit tests
 
-`scripts/selfcheck.test.ts` — 13 tests, 0 failures:
+`scripts/selfcheck.test.ts` — 62 tests, 0 failures:
 
 1. PM2.5 breakpoints follow the US EPA table (0, 12, 35.4, 55.4, 150.4, 500).
 2. AQI is null with no pollutants; picks dominant sub index.
@@ -24,6 +24,7 @@
 11. Swaps populated with title, basis, impact, horizon; at least one daily-frequency swap.
 12. Copilot schema rejects missing fields and empty why arrays.
 13. Rule engine answers without a model; safety language on symptom questions; no em/en dashes in answers.
+14–62. Additional tests for plan helpers (shiftDate, resolveDate, parseHour, timeLabel, confidenceFor), grounding (answerText, timeValues, validateClaims), contradiction validation, acute health detection, time parsing, demo environment completeness, indoor model, commute comparison, exposure proxy edge cases, swap generation, and provider schema validation.
 
 ## Type safety
 
@@ -31,7 +32,7 @@ TypeScript strict via `tsc --noEmit`. `satisfies CommuteOption` and narrowed `Co
 
 ## Lint
 
-eslint-config-next (web vitals + typescript rules). Zero errors; four `react-hooks/set-state-in-effect` warnings retained as intentional hydration/fetch patterns (localStorage rehydration and effect-triggered refetch).
+eslint-config-next (web vitals + typescript rules). Zero errors, zero warnings.
 
 ## Visual QA
 
@@ -39,4 +40,4 @@ Rendered all routes at desktop (1440), tablet (820), and mobile (390) with Playw
 
 ## Production build
 
-`next build` completes: 18 routes (14 static, 4 dynamic API routes), opengraph image, robots.txt, sitemap.xml generated. TypeScript check passes during build.
+`next build` completes: 19 routes (14 static pages + 5 dynamic API routes: /api/copilot, /api/environment, /api/health, /api/locations, /api/reverse), opengraph image, robots.txt, sitemap.xml generated. TypeScript check passes during build.

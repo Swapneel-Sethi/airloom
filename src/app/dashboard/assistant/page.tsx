@@ -39,13 +39,27 @@ const STARTERS = [
   "What can my family do indoors tonight?",
 ];
 
-const FALLBACK_LABEL: Record<string, string> = {
-  "no-key": "AI key not configured",
-  timeout: "AI request timed out",
-  "invalid-output": "AI response failed validation",
-  "provider-error": "AI provider unavailable",
-  blocked: "AI declined the request",
+const PROVIDER_NAME: Record<CopilotMeta["provider"], string> = {
+  nemotron: "Nemotron",
+  gemini: "Gemini",
+  rules: "Built in rule engine",
 };
+
+const FALLBACK_LABEL: Record<string, string> = {
+  "safety-gate": "safety fallback",
+  "all-providers-failed": "providers unavailable",
+};
+
+function providerLabel(meta: CopilotMeta): string {
+  if (meta.provider === "rules") {
+    if (meta.fallbackReason === "safety-gate") return "Safety fallback (rule engine)";
+    const reason = meta.fallbackReason
+      ? ` (${FALLBACK_LABEL[meta.fallbackReason] ?? meta.fallbackReason})`
+      : "";
+    return `Built in rule engine${reason}`;
+  }
+  return meta.model ? `${PROVIDER_NAME[meta.provider]} ${meta.model}` : PROVIDER_NAME[meta.provider];
+}
 
 export default function AssistantPage() {
   const { profile } = useProfile();
@@ -269,14 +283,12 @@ export default function AssistantPage() {
                     <span className="flex items-center gap-1.5">
                       <StatusDot
                         color={
-                          message.meta.provider === "gemini"
-                            ? "var(--sev-good)"
-                            : "var(--sev-moderate)"
+                          message.meta.provider === "rules"
+                            ? "var(--sev-moderate)"
+                            : "var(--sev-good)"
                         }
                       />
-                      {message.meta.provider === "gemini"
-                        ? `Gemini ${message.meta.model ?? ""}`
-                        : `Built in rule engine${message.meta.fallbackReason ? ` (${FALLBACK_LABEL[message.meta.fallbackReason] ?? message.meta.fallbackReason})` : ""}`}
+                      {providerLabel(message.meta)}
                     </span>
                     <span className="tnum">{message.meta.latencyMs} ms</span>
                     <span>{message.meta.promptVersion}</span>
