@@ -73,6 +73,9 @@ function extractContextNumbers(context: CopilotContext): Set<string> {
     addNumber(context.weather.wind);
   }
 
+  // Canonical planning threshold (policy fact)
+  addNumber(context.planningThreshold);
+
   // Time values from context (HH:MM format) - extract from window labels
   const timeLabels = windows
     .filter(Boolean)

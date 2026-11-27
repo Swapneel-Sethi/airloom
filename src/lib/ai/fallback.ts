@@ -128,7 +128,9 @@ function activityAnswer(context: CopilotContext): CopilotAnswer {
     };
   }
 
-  const recommended = value > 40 && best.pm25 < value * 0.85;
+  // Use canonical planning threshold from context
+  const threshold = context.planningThreshold;
+  const recommended = value > threshold && best.pm25 < value * 0.85;
   return {
     recommendation: recommended
       ? `Move the outdoor session to ${best.label}.`
@@ -136,7 +138,7 @@ function activityAnswer(context: CopilotContext): CopilotAnswer {
     why: [
       `PM2.5 is ${formatNumber(value, 0)} µg/m³ now, with AQI ${context.aqi?.value ?? "unavailable"}.`,
       `The lowest two hour average is ${formatNumber(best.pm25, 0)} µg/m³ between ${best.label}.`,
-      `Your household sensitivity is set to ${context.profile.sensitivity}, so the planning threshold is ${context.profile.sensitivity === "sensitive" ? "30" : "40"} µg/m³.`,
+      `Your household sensitivity is set to ${context.profile.sensitivity}, so the planning threshold is ${threshold} µg/m³.`,
     ],
     whatToDo: [
       recommended
@@ -162,8 +164,9 @@ function outdoorActivityAnswer(context: CopilotContext, question: string): Copil
   // Check for explicit clock time (e.g., "6 pm", "18:00", "at 6")
   const explicitTime = parseExplicitTime(question);
   const mentionsChild = /\b(child|kid|son|daughter|baby|toddler|infant)\b/.test(normalized);
-  const sensitive = context.profile.sensitivity === "sensitive" || mentionsChild;
-  const threshold = sensitive ? 30 : 40;
+  // Use canonical planning threshold from context (single source of truth)
+  const threshold = context.planningThreshold;
+  const thresholdBasis = context.planningThresholdBasis;
 
   const personPhrase = mentionsChild ? "your child" : "you";
   const activityPhrase = normalized.includes("cycle") ? "cycling" :
@@ -211,7 +214,7 @@ function outdoorActivityAnswer(context: CopilotContext, question: string): Copil
         : `Consider keeping ${personPhrase} indoors at ${requestedTimeLabel}.`,
       why: [
         `PM2.5 is ${formatNumber(requestedPm25, 0)} µg/m³ at ${requestedTimeLabel}, with AQI ${requestedAqi}.`,
-        `The planning threshold is ${threshold} µg/m³ for ${sensitive ? "a sensitive group" : "your household"}.`,
+        `The planning threshold is ${threshold} µg/m³ (${thresholdBasis}).`,
         best && best.label !== evaluation.eveningWindow?.label
           ? `The cleaner verified window is ${best.label} (PM2.5: ${formatNumber(best.pm25, 0)} µg/m³).`
           : "",
@@ -274,7 +277,7 @@ function outdoorActivityAnswer(context: CopilotContext, question: string): Copil
       : `Consider keeping ${personPhrase} indoors ${timeLabel}.`,
     why: [
       `PM2.5 is ${formatNumber(pm25Value, 0)} µg/m³ ${timeLabel}, with AQI ${timeWindow.aqi}.`,
-      `The planning threshold is ${threshold} µg/m³ for ${sensitive ? "a sensitive group" : "your household"}.`,
+      `The planning threshold is ${threshold} µg/m³ (${context.planningThresholdBasis}).`,
     ],
     whatToDo: recommended
       ? [

@@ -95,6 +95,7 @@ Rules:
 9. safetyNote is null unless the question mentions symptoms, medication, pregnancy, a heart or lung condition, or a child's health. Then give one calm line that Airloom is not a medical service and a qualified professional should be consulted.
 10. Return JSON only, matching the response schema.
 11. Answer the user's actual question directly. Do not substitute a generic daily plan recommendation for a specific question about an activity, time, person, or comparison.
+12. The planning threshold is provided in the context as "planningThreshold" (e.g., 30 or 40 µg/m³). Use this value directly. Do not compute or infer it.
 
 CRITICAL: You must return valid JSON only. Do not include any markdown formatting, code blocks, or explanatory text outside the JSON.
 `;

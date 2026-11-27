@@ -66,6 +66,9 @@ export interface CopilotContext {
     activityTime: string;
     sensitivity: string;
   };
+  // Canonical planning threshold (derived from household sensitivity)
+  planningThreshold: number;
+  planningThresholdBasis: "standard" | "sensitive";
   // Optional: populated when user explicitly asks about a specific clock time
   requestedTime?: { hour: number; minute: number; label: string } | null;
 }
@@ -220,6 +223,9 @@ export function buildCopilotContext(
       activityTime: profile.activityTime,
       sensitivity: plan.sensitivity,
     },
+    // Canonical planning threshold (single source of truth for all providers/validators)
+    planningThreshold: plan.sensitivity === "sensitive" ? 30 : 40,
+    planningThresholdBasis: plan.sensitivity === "sensitive" ? "sensitive" : "standard",
   };
 }
 

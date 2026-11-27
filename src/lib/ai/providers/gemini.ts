@@ -56,6 +56,7 @@ Named facts available in context:
 - FACT: tonightWindow (tonight window with label, pm25, aqi)
 - FACT: requestedTimeWindow (if user asked about explicit time, contains pm25, aqi for that hour)
 - FACT: profile.sensitivity (household sensitivity threshold)
+- FACT: planningThreshold (canonical planning threshold: 30 for sensitive, 40 for standard)
 `;
 
     const body = {
