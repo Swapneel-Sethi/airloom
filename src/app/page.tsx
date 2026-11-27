@@ -408,7 +408,7 @@ export default function LandingPage() {
                   )}
                 </div>
 
-                <div className="mt-4 flex items-center gap-1.5 text-[10px] text-muted-dark/70">
+                <div className="mt-4 flex items-center gap-1.5 text-[10px] text-muted-dark">
                   <StatusDot color="var(--sev-good)" />
                   Gemini response, schema validated
                 </div>

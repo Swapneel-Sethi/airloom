@@ -35,6 +35,10 @@ export default function OnboardingPage() {
   }, [hydrated, activeId, router]);
 
   useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }, [step]);
+
+  useEffect(() => {
     const trimmed = query.trim();
     if (trimmed.length < 2) {
       setResults([]);
@@ -108,7 +112,7 @@ export default function OnboardingPage() {
 
   function finish() {
     updateProfile({ onboarded: true });
-    router.push("/dashboard/today");
+    router.push("/dashboard");
   }
 
   const canContinue = step > 0 || profile.location !== null;
@@ -180,7 +184,7 @@ export default function OnboardingPage() {
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder="Search a city"
-                  className="h-12 w-full bg-transparent text-sm text-ink-light outline-none placeholder:text-muted-dark/70"
+                  className="h-12 w-full bg-transparent text-sm text-ink-light outline-none placeholder:text-muted-dark"
                   autoComplete="off"
                 />
                 {searching ? <LoaderCircle size={15} className="animate-spin text-muted-dark" /> : null}
@@ -380,7 +384,7 @@ export default function OnboardingPage() {
                 </Field>
               </div>
 
-              <p className="mt-6 max-w-lg text-[11px] leading-relaxed text-muted-dark/80">
+              <p className="mt-6 max-w-lg text-[11px] leading-relaxed text-muted-dark">
                 Airloom provides environmental guidance based on available data and is not a medical
                 service. You can clear this profile from settings at any time.
               </p>

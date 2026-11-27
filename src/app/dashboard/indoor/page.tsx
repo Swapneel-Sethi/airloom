@@ -167,14 +167,14 @@ export default function IndoorPage() {
                     <p className="text-[11px] uppercase tracking-[0.1em] text-muted-dark">
                       {PRIORITY_LABEL[action.priority] ?? action.priority}
                     </p>
-                    <p className="mt-1 text-[11px] text-muted-dark/70">{action.effort} effort</p>
+                    <p className="mt-1 text-[11px] text-muted-dark">{action.effort} effort</p>
                   </div>
                   <div>
                     <p className="text-[15px] text-ink-light">{action.title}</p>
                     <p className="mt-1.5 max-w-2xl text-[13px] leading-relaxed text-muted-dark">
                       {action.reason}
                     </p>
-                    <p className="mt-1.5 max-w-2xl text-[12px] leading-relaxed text-muted-dark/80">
+                    <p className="mt-1.5 max-w-2xl text-[12px] leading-relaxed text-muted-dark">
                       {action.detail}
                     </p>
                   </div>

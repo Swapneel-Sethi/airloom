@@ -78,9 +78,30 @@ export function compareCommute(
   const withinBand = options.filter(
     (option) => option.exposureProxy <= lowestExposure * 1.15,
   );
-  const recommended = withinBand.reduce((best, option) =>
-    option.co2Kg < best.co2Kg ? option : best,
-  );
+  // Never recommend car when a cleaner alternative is available within 1.5x travel time.
+  const nonCarOptions = withinBand.filter((o) => o.mode !== "car");
+  const carOption = withinBand.find((o) => o.mode === "car");
+  let recommended: CommuteOption;
+  if (nonCarOptions.length > 0 && carOption) {
+    // Prefer non-car within 1.5x of car's travel time
+    const carTime = carOption.durationMin;
+    const viableNonCar = nonCarOptions.filter(
+      (o) => o.durationMin <= carTime * 1.5 || o.durationMin <= carTime + 10,
+    );
+    if (viableNonCar.length > 0) {
+      recommended = viableNonCar.reduce((best, option) =>
+        option.co2Kg < best.co2Kg ? option : best,
+      );
+    } else {
+      recommended = withinBand.reduce((best, option) =>
+        option.co2Kg < best.co2Kg ? option : best,
+      );
+    }
+  } else {
+    recommended = withinBand.reduce((best, option) =>
+      option.co2Kg < best.co2Kg ? option : best,
+    );
+  }
   const maxExposure = Math.max(...options.map((option) => option.exposureProxy), 1);
 
   for (const option of options) {

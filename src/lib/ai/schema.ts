@@ -5,7 +5,7 @@ export const copilotAnswerSchema = z.object({
   why: z.array(z.string().min(1).max(320)).min(1).max(4),
   whatToDo: z.array(z.string().min(1).max(260)).min(1).max(4),
   alternative: z.string().min(1).max(420),
-  dataUsed: z.array(z.string().min(1).max(160)).min(1).max(6),
+  dataUsed: z.array(z.string().min(1).max(160)).max(6).default([]),
   safetyNote: z.string().max(420).nullable(),
 });
 

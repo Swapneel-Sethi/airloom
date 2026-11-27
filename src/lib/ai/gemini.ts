@@ -159,11 +159,13 @@ export async function generateWithGemini(
   try {
     return await attempt();
   } catch (error) {
-    if (error instanceof AiError && error.code === "invalid-output") {
+    if (error instanceof AiError && (error.code === "invalid-output" || error.code === "provider-error")) {
       // Retry once with a concise correction instruction
       try {
         return await attempt(
-          "Your previous response did not match the required JSON schema or contained numbers not present in the verified context. Return only valid JSON matching the schema exactly, and cite only numbers from the context.",
+          error.code === "invalid-output"
+            ? "Your previous response did not match the required JSON schema or contained numbers not present in the verified context. Return only valid JSON matching the schema exactly, and cite only numbers from the context."
+            : "The previous request failed. Please retry with the same structured JSON output.",
         );
       } catch (retryError) {
         // Second attempt failed; fall through to caller for deterministic fallback

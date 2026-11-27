@@ -248,7 +248,7 @@ export default function SettingsPage() {
             Reset to demo profile
           </button>
         </div>
-        <p className="mt-6 max-w-2xl text-[11px] leading-relaxed text-muted-dark/80">
+        <p className="mt-6 max-w-2xl text-[11px] leading-relaxed text-muted-dark">
           {SITE.disclaimer}
         </p>
       </section>

@@ -134,7 +134,7 @@ export default function ExposurePage() {
           </div>
           <p className="mt-4 max-w-2xl text-sm leading-relaxed text-muted-dark">
             {derived.plan.bestWindow
-              ? `The lowest two hour window is ${derived.plan.bestWindow.label} at ${formatNumber(derived.plan.bestWindow.avgPm25, 0)} µg/m³ average PM2.5. The highest is ${derived.plan.worstWindow?.label ?? "unavailable"} at ${formatNumber(derived.plan.worstWindow?.avgPm25 ?? 0, 0)} µg/m³. Plan outdoor time in the lower window and keep sessions short in the higher one.`
+              ? `The lowest two hour window is ${derived.plan.bestWindow.label} at ${formatNumber(derived.plan.bestWindow.avgPm25, 0)} ${selected.unit === "index" ? "AQI" : selected.label}. The highest is ${derived.plan.worstWindow?.label ?? "unavailable"} at ${formatNumber(derived.plan.worstWindow?.avgPm25 ?? 0, 0)} ${selected.unit === "index" ? "AQI" : selected.label}. Plan outdoor time in the lower window and keep sessions short in the higher one.`
               : "A two hour window comparison needs a full day of hourly values."}
           </p>
         </div>

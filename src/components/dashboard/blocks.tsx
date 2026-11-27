@@ -83,7 +83,7 @@ export function Provenance({
             </li>
           ))}
         </ul>
-        <p className="pt-1 text-muted-dark/80">
+        <p className="pt-1 text-muted-dark">
           AQI uses US EPA breakpoints on the hourly model concentration. See the method notes in
           the repository.
         </p>
@@ -139,7 +139,7 @@ export function PlanList({
               <p className="text-[11px] uppercase tracking-[0.12em] text-muted-dark">
                 {block.blockLabel}
               </p>
-              <p className="text-[11px] text-muted-dark/80">{block.timeRange}</p>
+              <p className="text-[11px] text-muted-dark">{block.timeRange}</p>
             </div>
             <p className="mt-1 text-[15px] leading-snug text-ink-light">{block.action}</p>
             <p className="mt-1.5 text-[13px] leading-relaxed text-muted-dark">{block.reason}</p>
@@ -159,12 +159,12 @@ export function PlanList({
                   {block.impact ? (
                     <span>
                       {block.impact.label}: <span className="tnum text-ink-light">{block.impact.value}</span>{" "}
-                      <span className="text-muted-dark/80">({block.impact.basis})</span>
+                      <span className="text-muted-dark">({block.impact.basis})</span>
                     </span>
                   ) : null}
                   <ConfidenceTag confidence={block.confidence} />
                 </div>
-                <p className="mt-1 text-[11px] text-muted-dark/70">Basis: {block.basis.join(". ")}</p>
+                <p className="mt-1 text-[11px] text-muted-dark">Basis: {block.basis.join(". ")}</p>
               </>
             ) : null}
           </div>
@@ -234,7 +234,7 @@ export function AqiReadout({
     <div>
       <div className="flex items-center gap-2">
         <SectionLabel tone="dark">Air quality index</SectionLabel>
-        <span className="text-[11px] text-muted-dark/70">US EPA scale</span>
+        <span className="text-[11px] text-muted-dark">US EPA scale</span>
       </div>
       <div className="mt-3 flex flex-wrap items-end gap-x-5 gap-y-2">
         <span

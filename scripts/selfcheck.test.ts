@@ -673,13 +673,13 @@ test("categoryFor covers all category edges", () => {
   assert.equal(categoryFor(500), "severe");
 });
 
-test("CO2 ordering: two wheeler < transit < car", () => {
+test("CO2 ordering: transit < two wheeler < car (India GHG Program)", () => {
   const transit = TRANSPORT_OPTIONS.find((o) => o.value === "transit")!;
   const twoWheeler = TRANSPORT_OPTIONS.find((o) => o.value === "two-wheeler")!;
   const car = TRANSPORT_OPTIONS.find((o) => o.value === "car")!;
 
-  assert.ok(twoWheeler.co2PerKm < transit.co2PerKm, "two wheeler lower than transit");
-  assert.ok(transit.co2PerKm < car.co2PerKm, "transit lower than car");
+  assert.ok(transit.co2PerKm < twoWheeler.co2PerKm, "transit lower than two wheeler");
+  assert.ok(twoWheeler.co2PerKm < car.co2PerKm, "two wheeler lower than car");
 });
 
 test("commute does not invent modes when none selected", () => {

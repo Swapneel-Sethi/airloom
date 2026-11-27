@@ -164,7 +164,7 @@ export function LocationDialog({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Delhi, Mumbai, Pune"
-              className="h-11 w-full bg-transparent text-sm text-ink-light outline-none placeholder:text-muted-dark/70"
+              className="h-11 w-full bg-transparent text-sm text-ink-light outline-none placeholder:text-muted-dark"
               autoComplete="off"
             />
             {searching ? <LoaderCircle size={16} className="animate-spin text-muted-dark" /> : null}

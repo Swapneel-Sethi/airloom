@@ -21,6 +21,7 @@ import {
 import { NAV_ITEMS, SITE } from "@/lib/constants";
 import { cn } from "@/lib/format";
 import { Wordmark } from "@/components/logo";
+import { effectiveLocationLabel } from "@/lib/profile";
 import { useProfile } from "@/components/providers";
 import { LocationDialog } from "@/components/dashboard/location-dialog";
 
@@ -145,11 +146,11 @@ export function DashboardShell({ children }: { children: ReactNode }) {
               type="button"
               onClick={() => setDialogOpen(true)}
               className="inline-flex h-11 items-center gap-2 rounded-lg px-2.5 text-[13px] text-ink-light hover:bg-white/5"
-              aria-label={`Change location. Current location ${profile.location?.name ?? "not set"}`}
+              aria-label={`Change location. Current location ${effectiveLocationLabel(profile)}`}
             >
               <MapPin size={15} className="text-muted-dark" aria-hidden="true" />
               <span className="hidden max-w-[180px] truncate sm:inline">
-                {profile.location?.name ?? "Choose city"}
+                {effectiveLocationLabel(profile) ?? "Choose city"}
               </span>
               {profile.dataMode === "demo" ? (
                 <span

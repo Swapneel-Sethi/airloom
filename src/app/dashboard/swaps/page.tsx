@@ -111,7 +111,7 @@ export default function SwapsPage() {
                 <p className="mt-1.5 max-w-2xl text-[13px] leading-relaxed text-muted-dark">
                   {swap.change}
                 </p>
-                <p className="mt-2 max-w-2xl text-[12px] leading-relaxed text-muted-dark/80">
+                <p className="mt-2 max-w-2xl text-[12px] leading-relaxed text-muted-dark">
                   {swap.why}
                 </p>
                 <p className="mt-2 max-w-2xl text-[11px] leading-relaxed text-muted-dark/60">

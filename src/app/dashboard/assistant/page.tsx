@@ -265,7 +265,7 @@ export default function AssistantPage() {
                     </p>
                   ) : null}
 
-                  <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-muted-dark/70">
+                  <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-muted-dark">
                     <span className="flex items-center gap-1.5">
                       <StatusDot
                         color={
@@ -314,7 +314,7 @@ export default function AssistantPage() {
             onChange={(event) => setInput(event.target.value)}
             maxLength={600}
             placeholder="Ask about a run, a commute, windows, or tonight"
-            className="h-12 w-full rounded-xl border border-line-dark bg-surface px-4 text-sm text-ink-light outline-none placeholder:text-muted-dark/70 focus:border-white/40"
+            className="h-12 w-full rounded-xl border border-line-dark bg-surface px-4 text-sm text-ink-light outline-none placeholder:text-muted-dark focus:border-white/40"
             disabled={pending}
           />
           <button
@@ -329,7 +329,7 @@ export default function AssistantPage() {
             <ArrowUp size={18} />
           </button>
         </form>
-        <p className="mt-2 text-[10px] leading-relaxed text-muted-dark/70">
+        <p className="mt-2 text-[10px] leading-relaxed text-muted-dark">
           Answers use the verified context for this location. Not a medical service.
         </p>
       </section>

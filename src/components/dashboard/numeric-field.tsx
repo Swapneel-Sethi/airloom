@@ -108,7 +108,7 @@ export function NumericField({
           </button>
         ) : null}
       </div>
-      {hint ? <p className="mt-1.5 text-[11px] text-muted-dark/80">{hint}</p> : null}
+      {hint ? <p className="mt-1.5 text-[11px] text-muted-dark">{hint}</p> : null}
     </div>
   );
 }

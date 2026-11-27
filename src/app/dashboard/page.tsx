@@ -229,7 +229,7 @@ export default function OverviewPage() {
           <p className="mt-5 text-[12px] text-muted-dark">
             {top.impact.label}:{" "}
             <span className="tnum text-ink-light">{top.impact.value}</span>{" "}
-            <span className="text-muted-dark/70">({top.impact.basis})</span>
+            <span className="text-muted-dark">({top.impact.basis})</span>
           </p>
         ) : null}
       </section>
@@ -332,7 +332,7 @@ export default function OverviewPage() {
             <div key={swap.id}>
               <p className="text-sm text-ink-light">{swap.title}</p>
               <p className="mt-1.5 text-xs leading-relaxed text-muted-dark">{swap.impact}</p>
-              <p className="mt-2 text-[11px] text-muted-dark/70">
+              <p className="mt-2 text-[11px] text-muted-dark">
                 {swap.frequency} · {swap.effort} effort · estimate
               </p>
             </div>

@@ -62,7 +62,7 @@ export function findBestWindow(
   hourly: HourPoint[],
   date: string,
   fromHour = 6,
-  toHour = 22,
+  toHour = 24,
   span = 2,
 ): DayWindow | null {
   let best: DayWindow | null = null;
@@ -79,7 +79,7 @@ export function findWorstWindow(
   hourly: HourPoint[],
   date: string,
   fromHour = 6,
-  toHour = 22,
+  toHour = 24,
   span = 2,
 ): DayWindow | null {
   let worst: DayWindow | null = null;

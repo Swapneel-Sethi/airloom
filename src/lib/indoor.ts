@@ -6,6 +6,7 @@ import type {
   UserProfile,
 } from "./types";
 import { dateOf } from "./windows";
+import { hasSensitivity } from "./profile";
 import { findBestWindow } from "./windows";
 import { formatNumber } from "./format";
 
@@ -51,9 +52,11 @@ export function buildIndoorOutlook(
   const estimated = estimateIndoorPm25(outdoorPm25, profile);
   const purifierAvailable = profile.ventilation.includes("purifier");
   const date = dateOf(environment.currentTime);
+  const sensitive = hasSensitivity(profile);
+  const ventThreshold = sensitive ? 30 : 40;
   const bestWindow = findBestWindow(environment.hourly, date, 6, 22, 2);
   const ventilationWindow =
-    bestWindow && bestWindow.avgPm25 < 30 ? bestWindow : null;
+    bestWindow && bestWindow.avgPm25 < ventThreshold ? bestWindow : null;
 
   if (outdoorPm25 === null || estimated === null) {
     return {
@@ -163,7 +166,7 @@ export function buildIndoorOutlook(
     actions.push({
       id: "keep-closed",
       title: "Keep windows closed through the day",
-      reason: `The lowest two hour outdoor average is ${formatNumber(bestWindow?.avgPm25 ?? outdoorPm25, 0)} µg/m³, above the 30 µg/m³ threshold Airloom uses for ventilation.`,
+      reason: `The lowest two hour outdoor average is ${formatNumber(bestWindow?.avgPm25 ?? outdoorPm25, 0)} µg/m³, above the ${ventThreshold} µg/m³ threshold Airloom uses for ventilation.`,
       detail:
         "Ventilate briefly after cooking instead, and let the purifier handle the room you occupy.",
       priority: "today",

@@ -5,7 +5,7 @@ import { Check } from "lucide-react";
 import { cn } from "@/lib/format";
 
 export const inputClass =
-  "h-11 w-full rounded-lg border border-line-dark bg-night px-3 text-sm text-ink-light outline-none transition-colors focus:border-white/40 [color-scheme:dark]";
+  "h-11 w-full rounded-lg border border-line-dark bg-night px-3 py-2 leading-normal text-sm text-ink-light outline-none transition-colors focus:border-white/40 [color-scheme:dark]";
 
 export function Field({
   label,
@@ -29,7 +29,7 @@ export function Field({
         {label}
       </label>
       <div className="mt-2">{children}</div>
-      {hint ? <p className="mt-1.5 text-[11px] text-muted-dark/80">{hint}</p> : null}
+      {hint ? <p className="mt-1.5 text-[11px] text-muted-dark">{hint}</p> : null}
     </div>
   );
 }
@@ -63,7 +63,7 @@ export function ToggleChip({
           <span
             className={cn(
               "mt-0.5 block text-[10px] leading-tight",
-              selected ? "text-green/80" : "text-muted-dark/80",
+              selected ? "text-green/80" : "text-muted-dark",
             )}
           >
             {hint}

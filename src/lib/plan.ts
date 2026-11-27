@@ -269,11 +269,15 @@ export function buildPlan(
         action:
           activityPm >= high
             ? `Keep the ${activityLabel} indoors today`
-            : `Keep your ${activityLabel} at ${profile.activityTime}`,
+            : activityPm >= caution
+              ? `Keep your ${activityLabel} short — PM2.5 is above your ${caution} µg/m³ threshold`
+              : `Keep your ${activityLabel} at ${profile.activityTime}`,
         reason:
           activityPm >= high
             ? `PM2.5 at ${profile.activityTime} is ${formatNumber(activityPm, 0)} µg/m³. No lower window in the day is more than 15 percent better, so moving it would not meaningfully change exposure.`
-            : `PM2.5 at ${profile.activityTime} is ${formatNumber(activityPm, 0)} µg/m³, below your ${caution} µg/m³ planning threshold.`,
+            : activityPm >= caution
+              ? `PM2.5 at ${profile.activityTime} is ${formatNumber(activityPm, 0)} µg/m³, above your ${caution} µg/m³ planning threshold but below the ${high} µg/m³ high threshold. Shorten the session or move it indoors.`
+              : `PM2.5 at ${profile.activityTime} is ${formatNumber(activityPm, 0)} µg/m³, below your ${caution} µg/m³ planning threshold.`,
         why: [
           `The lowest two hour window is ${activityBest?.label ?? "unavailable"} at ${formatNumber(activityBest?.avgPm25 ?? 0, 0)} µg/m³.`,
           "A shorter session lowers the exposure proxy in direct proportion to time.",
@@ -367,15 +371,29 @@ export function buildPlan(
     if (block.key === "evening") {
       const rising =
         windows.worst !== null && windows.worst.startHour >= block.start;
+      const ventWindow = findBestWindow(
+        environment.hourly,
+        today,
+        block.start,
+        block.end,
+        2,
+      );
+      const canVentilate =
+        ventWindow !== null &&
+        ventWindow.avgPm25 < (sensitive ? 30 : 40);
       return {
         ...base,
         category: "indoor",
         action: rising
           ? "Close windows before the evening rise"
-          : "Ventilate briefly, then close up",
+          : canVentilate
+            ? `Ventilate briefly between ${ventWindow.label}, then close up`
+            : "Keep windows closed through the evening",
         reason: rising
           ? `Evening averages ${formatNumber(pm, 0)} µg/m³ and the day's worst window starts at ${String(windows.worst?.startHour ?? 18).padStart(2, "0")}:00.`
-          : `Evening averages ${formatNumber(pm, 0)} µg/m³, close to the rest of the day.`,
+          : canVentilate
+            ? `Evening averages ${formatNumber(pm, 0)} µg/m³. The ${ventWindow.label} window averages ${formatNumber(ventWindow.avgPm25, 0)} µg/m³, below your ${sensitive ? 30 : 40} µg/m³ ventilation threshold.`
+            : `Evening averages ${formatNumber(pm, 0)} µg/m³. No evening window falls below your ${sensitive ? 30 : 40} µg/m³ ventilation threshold, so keep windows closed.`,
         why: [
           `Outdoor PM2.5 is ${formatNumber(pm, 0)} µg/m³ in this block.`,
           indoorEstimate !== null

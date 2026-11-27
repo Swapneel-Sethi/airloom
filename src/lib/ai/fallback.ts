@@ -89,7 +89,7 @@ function acuteHealthAnswer(): CopilotAnswer {
       "Keep windows closed and reduce outdoor exposure until symptoms improve.",
     ],
     alternative: "Contact a qualified healthcare professional or emergency services if symptoms are severe or worsening.",
-    dataUsed: [],
+    dataUsed: ["Location", "Air quality index"],
     safetyNote: null,
   };
 }
