@@ -56,6 +56,7 @@ function extractContextNumbers(context: CopilotContext): Set<string> {
     addNumber(context.commute.ambientPm25);
     addNumber(context.commute.distanceKm);
     for (const opt of context.commute.options) {
+      addNumber(opt.minutes);        // ADDED: commute minutes
       addNumber(opt.exposureProxy);
       addNumber(opt.co2Kg);
     }
@@ -91,12 +92,83 @@ function extractContextNumbers(context: CopilotContext): Set<string> {
     }
   }
 
+  // Commute departure hour (e.g., "14:00")
+  if (context.commute?.departureHour) {
+    numbers.add(context.commute.departureHour);
+  }
+
   return numbers;
+}
+
+/**
+ * Mask time expressions and unit labels in text to prevent their digits
+ * from being validated as ordinary numeric claims.
+ * Returns text with time expressions and unit labels replaced by placeholders.
+ */
+function maskTimeExpressions(text: string): string {
+  // Match time formats:
+  // - HH:MM (24-hour)
+  // - H:MM (24-hour without leading zero)
+  // - h:mm am/pm (12-hour)
+  // - h am/pm (bare hour with meridiem)
+  // - HH:MM to HH:MM (ranges)
+  // - H:MM to H:MM (ranges)
+  const timePatterns = [
+    /\b\d{1,2}:\d{2}\s+(?:am|pm)\b/gi,      // 6:00 pm, 14:30 pm
+    /\b\d{1,2}\s+(?:am|pm)\b/gi,             // 6 pm, 14 pm
+    /\b\d{2}:\d{2}\s+to\s+\d{2}:\d{2}\b/g,   // 15:00 to 17:00
+    /\b\d{1,2}:\d{2}\s+to\s+\d{1,2}:\d{2}\b/g, // 6:00 to 17:00
+    /\b\d{2}:\d{2}\b/g,                       // 14:00, 15:00
+    /\b\d{1,2}:\d{2}\b/g,                     // 6:00, 9:30
+  ];
+
+  // Unit labels and chemical formulas that contain numbers but aren't factual claims
+  const unitPatterns = [
+    /\bPM2\.5\b/gi,           // PM2.5 particle size
+    /\bPM10\b/gi,             // PM10 particle size
+    /\bCO2\b/gi,              // Carbon dioxide
+    /\bCO₂\b/gi,              // Carbon dioxide (unicode subscript)
+    /\bNO2\b/gi,              // Nitrogen dioxide
+    /\bNO₂\b/gi,              // Nitrogen dioxide (unicode)
+    /\bSO2\b/gi,              // Sulfur dioxide
+    /\bSO₂\b/gi,              // Sulfur dioxide (unicode)
+    /\bO3\b/gi,               // Ozone
+    /\bO₃\b/gi,               // Ozone (unicode)
+    /\bµg\/m³\b/g,            // Micrograms per cubic meter
+    /\bug\/m3\b/gi,           // Micrograms per cubic meter (ASCII)
+    /\bµg\/m3\b/gi,           // Mixed
+    /\bmg\/m³\b/g,            // Milligrams per cubic meter
+    /\bppm\b/gi,              // Parts per million
+    /\bppb\b/gi,              // Parts per billion
+  ];
+
+  let masked = text;
+  for (const pattern of timePatterns) {
+    masked = masked.replace(pattern, "[TIME]");
+  }
+  for (const pattern of unitPatterns) {
+    masked = masked.replace(pattern, "[UNIT]");
+  }
+  return masked;
+}
+
+/**
+ * Extract numeric tokens from text using a regex that preserves decimals as single tokens.
+ * Matches: -12.5, 12.5, 148.8, 0.35, 12, -5
+ * Does NOT split 2.5 into 2 and 5.
+ * Avoids the JavaScript regex bug where /-?\d+(?:\.\d+)?/g matches both "2.5" and "2".
+ */
+function extractNumbers(text: string): string[] {
+  // Use explicit alternation: decimal OR integer (not optional group)
+  // This avoids the g-flag backtracking bug
+  const matches = text.match(/-?(?:\d+\.\d+|\d+)/g);
+  return matches || [];
 }
 
 /**
  * Validate that every numeric claim in the answer is grounded in verified context.
  * Uses named fact extraction as primary validation, with token scanning as secondary defense.
+ * Time expressions are validated separately by contradiction.ts.
  */
 export function validateNumberGrounding(
   answer: CopilotAnswer,
@@ -129,9 +201,12 @@ export function validateNumberGrounding(
     }
   }
 
-  // Find all numbers in the answer text
-  const answerNumMatches = text.match(/-?\d+\.?\d*/g);
-  if (!answerNumMatches) return { valid: true, errors: [] };
+  // STEP 1: Mask time expressions so their digits don't become numeric claims
+  const maskedText = maskTimeExpressions(text);
+
+  // STEP 2: Extract numbers from masked text (decimals preserved as single tokens)
+  const answerNumMatches = extractNumbers(maskedText);
+  if (!answerNumMatches || answerNumMatches.length === 0) return { valid: true, errors: [] };
 
   const errors: string[] = [];
   for (const match of answerNumMatches) {
@@ -142,7 +217,9 @@ export function validateNumberGrounding(
     if (num === 0 || num === 1) continue;
 
     // Skip percentage values (they're derived, not direct context values)
-    if (match.endsWith("%")) continue;
+    // Check original text for % suffix
+    const hasPercentSuffix = text.includes(match + "%");
+    if (hasPercentSuffix) continue;
 
     // Check against named facts (primary validation)
     const isInContext = contextNumbers.has(match) || contextNumbers.has(num.toString());
@@ -174,7 +251,7 @@ function validateNumberGroundingFallback(
   // All numbers present in the context (as JSON values)
   const contextNumbers = new Set<string>();
   const contextStr = JSON.stringify(contextJson);
-  const contextNumMatches = contextStr.match(/-?\d+\.?\d*/g);
+  const contextNumMatches = contextStr.match(/-?(?:\d+\.\d+|\d+)/g); // Fixed regex
   if (contextNumMatches) {
     for (const m of contextNumMatches) {
       contextNumbers.add(m);
@@ -195,8 +272,9 @@ function validateNumberGroundingFallback(
     }
   }
 
-  // Find all numbers in the answer text
-  const answerNumMatches = text.match(/-?\d+\.?\d*/g);
+  // Mask time expressions before extracting numbers
+  const maskedText = maskTimeExpressions(text);
+  const answerNumMatches = extractNumbers(maskedText);
   if (!answerNumMatches) return { valid: true, errors: [] };
 
   const errors: string[] = [];
@@ -208,7 +286,8 @@ function validateNumberGroundingFallback(
     if (num === 0 || num === 1) continue;
 
     // Skip percentage values
-    if (match.endsWith("%")) continue;
+    const hasPercentSuffix = text.includes(match + "%");
+    if (hasPercentSuffix) continue;
 
     const isInContext = contextNumbers.has(match) || contextNumbers.has(num.toString());
     const isTime = contextTimes.has(match);
