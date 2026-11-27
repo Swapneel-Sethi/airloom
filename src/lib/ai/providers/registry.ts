@@ -20,8 +20,8 @@ export interface ProviderPipelineResult {
   validated: boolean;
 }
 
-type ProviderEntry = {
-  name: string;
+export interface ProfileRecord {
+  id: string;
   provider: {
     generate: (question: string, context: CopilotContext) => Promise<{
       answer: CopilotAnswer;
@@ -29,31 +29,29 @@ type ProviderEntry = {
     }>;
     isAvailable: () => boolean;
   };
-};
+}
 
-export class ProviderRegistry {
-  private providers: ProviderEntry[] = [];
+export class ProfileRegistry {
+  private profiles: ProviderEntry[] = [];
 
   constructor() {
-    // Register providers in priority order: Nemotron -> Gemini -> Deterministic
-    this.providers.push({
+    this.profiles.push({
       name: "nemotron",
       provider: new NemotronProvider(process.env.NVIDIA_API_KEY),
     });
-    this.providers.push({
+    this.profiles.push({
       name: "gemini",
       provider: new GeminiProvider(process.env.GEMINI_API_KEY),
     });
-    this.providers.push({
+    this.profiles.push({
       name: "deterministic",
       provider: new DeterministicProvider(),
     });
   }
 
   async generate(options: ProviderPipelineOptions): Promise<ProviderPipelineResult> {
-    const { question, context } = options;
+    const { query, context } = options;
 
-    // NON NEGOTIABLE: acute health safety runs before any model
     if (isAcuteHealthScenario(question)) {
       return {
         answer: await this.generateDeterministic(question, context),
@@ -64,12 +62,9 @@ export class ProviderRegistry {
       };
     }
 
-    // Try each provider in priority order
-    for (const { provider, name } of this.providers) {
-      console.log(`Provider ${name}: apiKey = ${provider.isAvailable()}, env NVIDIA_API_KEY = ${process.env.NVIDIA_API_KEY ? process.env.NVIDIA_API_KEY.substring(0, 10) + '...' : 'NOT_SET'}`);
+    for (const entry of this.profiles) {
       try {
-
-        // Validate the result
+        const result = await entry.provider.generate(question, context);
         const validation = await this.validateResult(result.answer, context);
 
         if (validation.valid) {
@@ -82,18 +77,14 @@ export class ProviderRegistry {
           };
         }
 
-        // Validation failed - try next provider
-        console.warn(`Provider ${result.meta.provider} failed validation: ${validation.errors.join(", ")}`);
+        console.warn(`Provider ${entry.name} failed validation: ${validation.errors.join(", ")}`);
       } catch (error) {
-        // Provider failed completely - try next provider
         const errorMsg = error instanceof Error ? error.message : String(error);
-        console.warn(`Provider ${name} failed: ${errorMsg}`);
-        console.warn(`Provider ${name} isAvailable: ${provider.isAvailable()}`);
+        console.warn(`Provider ${entry.name} failed: ${errorMsg}`);
         continue;
       }
     }
 
-    // All providers failed - return deterministic fallback
     const fallbackAnswer = await this.generateDeterministic(question, context);
     return {
       answer: fallbackAnswer,
@@ -118,7 +109,6 @@ export class ProviderRegistry {
   ): Promise<{ valid: boolean; errors: string[] }> {
     const errors: string[] = [];
 
-    // Schema validation - ensure answer has required fields
     if (!answer.recommendation || answer.recommendation.trim().length === 0) {
       errors.push("Missing recommendation");
     }
@@ -135,13 +125,11 @@ export class ProviderRegistry {
       errors.push("Missing dataUsed fields");
     }
 
-    // Grounding validation
     const groundingResult = validateNumberGrounding(answer, JSON.stringify(context));
     if (!groundingResult.valid) {
       errors.push(...groundingResult.errors);
     }
 
-    // Contradiction validation
     const contradictionResult = validateContradictions(answer, context);
     if (!contradictionResult.valid) {
       errors.push(...contradictionResult.errors);
