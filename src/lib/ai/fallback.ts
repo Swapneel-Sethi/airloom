@@ -500,10 +500,10 @@ const INTENT_PATTERNS: Array<{
   { name: "indoor-windows", pattern: /\b(window|ventilate|open|fresh air|air out)\b/, handler: ventilationAnswer },
   { name: "commute", pattern: /\b(commute|travel|leave|office|work|bus|metro|train|cab|scooter|trip|ride|drive|transport|cycle|compare)\b/, handler: commuteAnswer },
   { name: "family", pattern: /\b(family|child|kid|school|parent|mother|baby|infant|toddler|older adult|elderly|grandparent)\b/, handler: familyAnswer },
-  { name: "activity", pattern: /\b(run|jog|exercise|walk|walking|cycle|cycling|gym|cricket|sport|session|workout|play|playing|outside|outdoor)\b/, handler: activityAnswer },
-  { name: "swaps", pattern: /\b(swap|swaps|sustain|carbon|co2|emission|impact|change mode|reduce emission)\b/, handler: swapsAnswer },
   // Best time queries - highest priority for general outdoor timing questions
   { name: "best-time", pattern: /\b(best time|safest time|lowest pollution|when should i go|when can i go|when to go)\b/, handler: bestTimeAnswer },
+  { name: "activity", pattern: /\b(run|jog|exercise|walk|walking|cycle|cycling|gym|cricket|sport|session|workout|play|playing|outside|outdoor)\b/, handler: activityAnswer },
+  { name: "swaps", pattern: /\b(swap|swaps|sustain|carbon|co2|emission|impact|change mode|reduce emission)\b/, handler: swapsAnswer },
 ];
 
 interface IntentMatch {
