@@ -168,34 +168,16 @@ function extractNumbers(text: string): string[] {
   return matches || [];
 }
 
-/**
- * Validate that every numeric claim in the answer is grounded in verified context.
- * Uses named fact extraction as primary validation, with token scanning as secondary defense.
- * Time expressions are validated separately by contradiction.ts.
- */
-export function validateNumberGrounding(
-  answer: CopilotAnswer,
-  contextJson: string,
-): { valid: boolean; errors: string[] } {
-  const text = [
+function answerText(answer: CopilotAnswer): string {
+  return [
     answer.recommendation,
     ...answer.why,
     ...answer.whatToDo,
     answer.alternative,
   ].join(" ");
+}
 
-  // Parse context to extract named facts
-  let context: CopilotContext;
-  try {
-    context = JSON.parse(contextJson);
-  } catch {
-    // Fallback to crude token scanning if context parsing fails
-    return validateNumberGroundingFallback(answer, contextJson);
-  }
-
-  const contextNumbers = extractContextNumbers(context);
-
-  // Also extract time values from context for time validation
+function timeValues(contextJson: string): Set<string> {
   const contextTimes = new Set<string>();
   const timeMatches = contextJson.match(/\d{2}:\d{2}/g);
   if (timeMatches) {
@@ -203,13 +185,24 @@ export function validateNumberGrounding(
       contextTimes.add(m);
     }
   }
+  return contextTimes;
+}
 
+/**
+ * Shared claim validation. Masks time expressions, extracts numeric tokens,
+ * and checks every claim against the verified context values.
+ */
+function validateClaims(
+  text: string,
+  contextNumbers: Set<string>,
+  contextTimes: Set<string>,
+): { valid: boolean; errors: string[] } {
   // STEP 1: Mask time expressions so their digits don't become numeric claims
   const maskedText = maskTimeExpressions(text);
 
   // STEP 2: Extract numbers from masked text (decimals preserved as single tokens)
   const answerNumMatches = extractNumbers(maskedText);
-  if (!answerNumMatches || answerNumMatches.length === 0) return { valid: true, errors: [] };
+  if (answerNumMatches.length === 0) return { valid: true, errors: [] };
 
   const errors: string[] = [];
   for (const match of answerNumMatches) {
@@ -237,6 +230,34 @@ export function validateNumberGrounding(
 }
 
 /**
+ * Validate that every numeric claim in the answer is grounded in verified context.
+ * Uses named fact extraction as primary validation, with token scanning as secondary defense.
+ * Time expressions are validated separately by contradiction.ts.
+ */
+export function validateNumberGrounding(
+  answer: CopilotAnswer,
+  contextJson: string,
+): { valid: boolean; errors: string[] } {
+  const text = answerText(answer);
+
+  // Parse context to extract named facts
+  let context: CopilotContext;
+  try {
+    context = JSON.parse(contextJson);
+  } catch {
+    // Fallback to crude token scanning if context parsing fails
+    return validateNumberGroundingFallback(answer, contextJson);
+  }
+
+  const contextNumbers = extractContextNumbers(context);
+
+  // Also extract time values from context for time validation
+  const contextTimes = timeValues(contextJson);
+
+  return validateClaims(text, contextNumbers, contextTimes);
+}
+
+/**
  * Fallback grounding validator using crude token scanning.
  * Used when context parsing fails.
  */
@@ -244,12 +265,7 @@ function validateNumberGroundingFallback(
   answer: CopilotAnswer,
   contextJson: string,
 ): { valid: boolean; errors: string[] } {
-  const text = [
-    answer.recommendation,
-    ...answer.why,
-    ...answer.whatToDo,
-    answer.alternative,
-  ].join(" ");
+  const text = answerText(answer);
 
   // All numbers present in the context (as JSON values)
   const contextNumbers = new Set<string>();
@@ -267,38 +283,7 @@ function validateNumberGroundingFallback(
   }
 
   // Time values from context (HH:MM format)
-  const contextTimes = new Set<string>();
-  const timeMatches = contextStr.match(/\d{2}:\d{2}/g);
-  if (timeMatches) {
-    for (const m of timeMatches) {
-      contextTimes.add(m);
-    }
-  }
+  const contextTimes = timeValues(contextStr);
 
-  // Mask time expressions before extracting numbers
-  const maskedText = maskTimeExpressions(text);
-  const answerNumMatches = extractNumbers(maskedText);
-  if (!answerNumMatches) return { valid: true, errors: [] };
-
-  const errors: string[] = [];
-  for (const match of answerNumMatches) {
-    const num = Number(match);
-    if (!Number.isFinite(num)) continue;
-
-    // Skip common neutral numbers
-    if (num === 0 || num === 1) continue;
-
-    // Skip percentage values
-    const hasPercentSuffix = text.includes(match + "%");
-    if (hasPercentSuffix) continue;
-
-    const isInContext = contextNumbers.has(match) || contextNumbers.has(num.toString());
-    const isTime = contextTimes.has(match);
-
-    if (!isInContext && !isTime) {
-      errors.push(`Number "${match}" not found in verified context`);
-    }
-  }
-
-  return { valid: errors.length === 0, errors };
+  return validateClaims(text, contextNumbers, contextTimes);
 }
