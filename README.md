@@ -40,7 +40,7 @@ Demo data is never presented as live data.
 
 ## Proof
 
-- **62/62 self-checks pass** (`npm test`): AQI breakpoints, category boundaries, exposure math, deterministic plans, sensitive-household thresholds, commute ordering, indoor estimates, swap output and copilot schema rejection.
+- **82/82 tests pass** (`npm test`): AQI breakpoints, category boundaries, exposure math, deterministic plans, sensitive-household thresholds, commute ordering, indoor estimates, swap output, copilot schema rejection, grounding validation, contradiction detection, AI provider pipeline, safety gate, profile management, and demo provenance.
 - **Deterministic core.** Identical inputs produce identical plans and recommendations.
 - **Production is live.** The deployed app returns HTTP 200.
 - **Fail-safe assistant.** If Nemotron and Gemini are unavailable, return invalid output, time out or are not configured, the deterministic rule engine answers instead.

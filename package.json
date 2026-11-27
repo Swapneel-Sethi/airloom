@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test tests/**/*.test.ts scripts/selfcheck.test.ts"
+    "test": "tsx --test tests/**/*.test.ts"
   },
   "dependencies": {
     "lucide-react": "^1.79.0",

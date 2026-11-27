@@ -27,7 +27,7 @@ Airloom — PromptWars Virtual Main Challenge 06
 - npm ci: PASS (clean install)
 - npm run typecheck: PASS
 - npm run lint: PASS (zero errors, zero warnings)
-- npm run test: PASS (62/62 tests)
+- npm run test: PASS (82/82 tests)
 - npm run build: PASS (19 routes: 14 static, 5 dynamic)
 - CI workflow (GitHub Actions): configured with Node 22 LTS; run status verified after push
 
@@ -46,7 +46,7 @@ Airloom — PromptWars Virtual Main Challenge 06
 - Acute health safety gate implemented in `src/lib/ai/providers/registry.ts` (lines 56-65) and `src/lib/ai/fallback/safety.ts`
 - Safety response ("Airloom is not a medical service") implemented in `fallback/safety.ts` `acuteHealthAnswer()`
 - Model never called for acute scenarios (verified at `copilot.ts` and `registry.ts`)
-- Test coverage: `test("acute safety scenarios are handled by the safety gate")` at `scripts/selfcheck.test.ts:871`
+- Test coverage: `test("acute safety scenarios are handled by the safety gate")` at `tests/safety.test.ts` and `tests/ai-providers.test.ts`
 - Not claimed as used, not claimed as compliant; implementation verified against the current repository source and production behavior
 
 ## Security
