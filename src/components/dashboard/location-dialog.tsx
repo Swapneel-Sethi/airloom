@@ -21,17 +21,59 @@ export function LocationDialog({
   const [geoError, setGeoError] = useState<string | null>(null);
   const [locating, setLocating] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (!open) return;
+
+    // Store the element that had focus before the dialog opened
+    previouslyFocusedRef.current = document.activeElement as HTMLElement;
+
     const timer = window.setTimeout(() => inputRef.current?.focus(), 40);
+
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+      }
     };
+
+    // Focus trap
+    const onTab = (event: KeyboardEvent) => {
+      if (event.key !== "Tab" || !dialogRef.current) return;
+
+      const focusableElements = dialogRef.current.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+
+      if (focusableElements.length === 0) return;
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
+      if (event.shiftKey) {
+        if (document.activeElement === firstElement) {
+          event.preventDefault();
+          lastElement.focus();
+        }
+      } else {
+        if (document.activeElement === lastElement) {
+          event.preventDefault();
+          firstElement.focus();
+        }
+      }
+    };
+
     window.addEventListener("keydown", onKey);
+    window.addEventListener("keydown", onTab);
+
     return () => {
       window.clearTimeout(timer);
       window.removeEventListener("keydown", onKey);
+      window.removeEventListener("keydown", onTab);
+      // Restore focus to the element that had it before the dialog opened
+      previouslyFocusedRef.current?.focus();
     };
   }, [open, onClose]);
 
@@ -129,6 +171,7 @@ export function LocationDialog({
 
   return (
     <div
+      ref={dialogRef}
       className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 px-4 py-10 backdrop-blur-sm sm:items-center"
       role="dialog"
       aria-modal="true"

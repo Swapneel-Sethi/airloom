@@ -149,35 +149,107 @@ export default function ProfilesPage() {
       </main>
 
       {deleteTarget ? (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="delete-profile-title"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
-        >
-          <div className="w-full max-w-sm rounded-2xl border border-line-dark bg-surface p-5">
-            <h2 id="delete-profile-title" className="text-lg text-ink-light">
-              Delete {deleteTarget.name}?
-            </h2>
-            <p className="mt-2 text-[12px] leading-relaxed text-muted-dark">
-              This removes this profile and its saved Airloom settings from this browser.
-            </p>
-            <div className="mt-5 flex justify-end gap-2">
-              <button
-                ref={cancelRef}
-                type="button"
-                onClick={() => setDeleteTarget(null)}
-                className={buttonClass("darkOutline")}
-              >
-                Cancel
-              </button>
-              <button type="button" onClick={confirmDelete} className={buttonClass("dark")}>
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
+        <DeleteConfirmDialog
+          profile={deleteTarget}
+          onCancel={() => setDeleteTarget(null)}
+          onConfirm={confirmDelete}
+        />
       ) : null}
+    </div>
+  );
+}
+
+interface DeleteConfirmDialogProps {
+  profile: { id: string; name: string };
+  onCancel: () => void;
+  onConfirm: () => void;
+}
+
+function DeleteConfirmDialog({ profile, onCancel, onConfirm }: DeleteConfirmDialogProps) {
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const cancelButtonRef = useRef<HTMLButtonElement>(null);
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    previouslyFocusedRef.current = document.activeElement as HTMLElement;
+
+    const timer = window.setTimeout(() => cancelButtonRef.current?.focus(), 40);
+
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onCancel();
+      }
+    };
+
+    const onTab = (event: KeyboardEvent) => {
+      if (event.key !== "Tab" || !dialogRef.current) return;
+
+      const focusableElements = dialogRef.current.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+
+      if (focusableElements.length === 0) return;
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
+      if (event.shiftKey) {
+        if (document.activeElement === firstElement) {
+          event.preventDefault();
+          lastElement.focus();
+        }
+      } else {
+        if (document.activeElement === lastElement) {
+          event.preventDefault();
+          firstElement.focus();
+        }
+      }
+    };
+
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("keydown", onTab);
+
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("keydown", onTab);
+      previouslyFocusedRef.current?.focus();
+    };
+  }, [onCancel]);
+
+  return (
+    <div
+      ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="delete-profile-title"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onCancel();
+      }}
+    >
+      <div className="w-full max-w-sm rounded-2xl border border-line-dark bg-surface p-5">
+        <h2 id="delete-profile-title" className="text-lg text-ink-light">
+          Delete {profile.name}?
+        </h2>
+        <p className="mt-2 text-[12px] leading-relaxed text-muted-dark">
+          This removes this profile and its saved Airloom settings from this browser.
+        </p>
+        <div className="mt-5 flex justify-end gap-2">
+          <button
+            ref={cancelButtonRef}
+            type="button"
+            onClick={onCancel}
+            className={buttonClass("darkOutline")}
+          >
+            Cancel
+          </button>
+          <button type="button" onClick={onConfirm} className={buttonClass("dark")}>
+            Delete
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
