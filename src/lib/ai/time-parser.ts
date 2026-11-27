@@ -13,16 +13,21 @@ export interface ExplicitTime {
 export function parseExplicitTime(question: string): ExplicitTime | null {
   const normalized = question.toLowerCase();
 
+  // Check for evening/night context to infer PM for 1-12 hour values
+  const isEveningContext = /\b(tonight|evening|night)\b/.test(normalized);
+
   // Pattern: "at 6", "around 6", "at 6 pm", "around 6 pm", "6 pm", "6:00 pm", "18:00", "18", "7:30 pm"
   const patterns = [
     // "at 6 pm", "around 6 pm", "at 6:00 pm", "6 pm", "6:00 pm"
     /\b(?:at|around)\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/,
     // "6 pm", "6:00 pm", "7:30 pm"
     /\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/,
-    // "18:00", "18", "at 18:00", "at 18"
-    /\b(?:at|around)\s+(\d{1,2})(?::(\d{2}))?\b/,
-    // "18:00" standalone
+    // "18:00" standalone (24-hour with minutes)
     /\b(\d{1,2}):(\d{2})\b/,
+    // "at 18", "at 6" (bare hour with at/around) - check evening context for 1-12
+    /\b(?:at|around)\s+(\d{1,2})(?::(\d{2}))?\b/,
+    // "18" standalone (24-hour without minutes) - only if >= 13 or in evening context
+    /\b(\d{1,2})\b/,
   ];
 
   for (const pattern of patterns) {
@@ -35,9 +40,24 @@ export function parseExplicitTime(question: string): ExplicitTime | null {
       if (meridiem === "pm" && hour !== 12) hour += 12;
       if (meridiem === "am" && hour === 12) hour = 0;
 
-      // Handle 24-hour format without meridiem
-      if (!meridiem && hour >= 0 && hour <= 23) {
-        // Already in 24-hour format
+      // Handle bare hour without meridiem
+      if (!meridiem) {
+        // If hour is 13-23, it's 24-hour format
+        // If hour is 1-12 and evening context, treat as PM
+        // If hour is 1-12 and no evening context, ambiguous - skip this pattern
+        if (hour >= 13 && hour <= 23) {
+          // 24-hour format, keep as is
+        } else if (hour >= 1 && hour <= 12) {
+          if (isEveningContext) {
+            hour += 12; // Treat as PM
+          } else {
+            continue; // Ambiguous, try next pattern
+          }
+        } else if (hour === 0) {
+          // Midnight, keep as 0
+        } else {
+          continue; // Invalid hour
+        }
       }
 
       if (hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) {
